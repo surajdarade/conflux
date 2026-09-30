@@ -28,6 +28,9 @@
   <Folder Name="/src/Services/Order/">
     <Project Path="src/Services/Order/Conflux.Order/Conflux.Order.csproj" />
   </Folder>
+  <Folder Name="/src/Services/Payment/">
+    <Project Path="src/Services/Payment/Conflux.Payment/Conflux.Payment.csproj" />
+  </Folder>
   <Folder Name="/tests/" />
   <Folder Name="/tests/Contract/" />
   <Folder Name="/tests/EndToEnd/" />
@@ -43,6 +46,9 @@
   </Folder>
   <Folder Name="/tests/Services/Order/">
     <Project Path="tests/Services/Order/Conflux.Order.IntegrationTests/Conflux.Order.IntegrationTests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Services/Payment/">
+    <Project Path="tests/Services/Payment/Conflux.Payment.IntegrationTests/Conflux.Payment.IntegrationTests.csproj" />
   </Folder>
   <Folder Name="/tests/Unit/" />
 </Solution>

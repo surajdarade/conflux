@@ -3,20 +3,32 @@
   "WorkspaceRootPath": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{79CA5AE0-B049-2C07-581D-6A79EA2AB17E}|src\\Services\\Order\\Conflux.Order\\Conflux.Order.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\src\\services\\order\\conflux.order\\application\\orders\\orderinventoryorchestrator.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{79CA5AE0-B049-2C07-581D-6A79EA2AB17E}|src\\Services\\Order\\Conflux.Order\\Conflux.Order.csproj|solutionrelative:src\\services\\order\\conflux.order\\application\\orders\\orderinventoryorchestrator.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{592478F3-B2CD-6FDD-4E9B-8D74024EA341}|tests\\Services\\Payment\\Conflux.Payment.IntegrationTests\\Conflux.Payment.IntegrationTests.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\tests\\services\\payment\\conflux.payment.integrationtests\\paymentendpointstests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{592478F3-B2CD-6FDD-4E9B-8D74024EA341}|tests\\Services\\Payment\\Conflux.Payment.IntegrationTests\\Conflux.Payment.IntegrationTests.csproj|solutionrelative:tests\\services\\payment\\conflux.payment.integrationtests\\paymentendpointstests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{4747072B-40F8-5DDF-5BC2-7346541545E6}|tests\\Services\\Order\\Conflux.Order.IntegrationTests\\Conflux.Order.IntegrationTests.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\tests\\services\\order\\conflux.order.integrationtests\\orderendpointstests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{4747072B-40F8-5DDF-5BC2-7346541545E6}|tests\\Services\\Order\\Conflux.Order.IntegrationTests\\Conflux.Order.IntegrationTests.csproj|solutionrelative:tests\\services\\order\\conflux.order.integrationtests\\orderendpointstests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{60841A6C-85F4-9DA6-21FA-58183FF32B94}|src\\Services\\Payment\\Conflux.Payment\\Conflux.Payment.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\src\\services\\payment\\conflux.payment\\application\\payments\\paymentapplicationservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{60841A6C-85F4-9DA6-21FA-58183FF32B94}|src\\Services\\Payment\\Conflux.Payment\\Conflux.Payment.csproj|solutionrelative:src\\services\\payment\\conflux.payment\\application\\payments\\paymentapplicationservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{79CA5AE0-B049-2C07-581D-6A79EA2AB17E}|src\\Services\\Order\\Conflux.Order\\Conflux.Order.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\src\\services\\order\\conflux.order\\clients\\inventory\\inventorygrpcclient.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{79CA5AE0-B049-2C07-581D-6A79EA2AB17E}|src\\Services\\Order\\Conflux.Order\\Conflux.Order.csproj|solutionrelative:src\\services\\order\\conflux.order\\clients\\inventory\\inventorygrpcclient.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{79CA5AE0-B049-2C07-581D-6A79EA2AB17E}|src\\Services\\Order\\Conflux.Order\\Conflux.Order.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\src\\services\\order\\conflux.order\\infrastructure\\orderdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{79CA5AE0-B049-2C07-581D-6A79EA2AB17E}|src\\Services\\Order\\Conflux.Order\\Conflux.Order.csproj|solutionrelative:src\\services\\order\\conflux.order\\infrastructure\\orderdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{79CA5AE0-B049-2C07-581D-6A79EA2AB17E}|src\\Services\\Order\\Conflux.Order\\Conflux.Order.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\src\\services\\order\\conflux.order\\clients\\inventory\\iinventoryclient.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{79CA5AE0-B049-2C07-581D-6A79EA2AB17E}|src\\Services\\Order\\Conflux.Order\\Conflux.Order.csproj|solutionrelative:src\\services\\order\\conflux.order\\clients\\inventory\\iinventoryclient.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{60841A6C-85F4-9DA6-21FA-58183FF32B94}|src\\Services\\Payment\\Conflux.Payment\\Conflux.Payment.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\src\\services\\payment\\conflux.payment\\conflux.payment.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{60841A6C-85F4-9DA6-21FA-58183FF32B94}|src\\Services\\Payment\\Conflux.Payment\\Conflux.Payment.csproj|solutionrelative:src\\services\\payment\\conflux.payment\\conflux.payment.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{79CA5AE0-B049-2C07-581D-6A79EA2AB17E}|src\\Services\\Order\\Conflux.Order\\Conflux.Order.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\src\\services\\order\\conflux.order\\application\\orders\\orderinventoryorchestrator.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{79CA5AE0-B049-2C07-581D-6A79EA2AB17E}|src\\Services\\Order\\Conflux.Order\\Conflux.Order.csproj|solutionrelative:src\\services\\order\\conflux.order\\application\\orders\\orderinventoryorchestrator.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{79CA5AE0-B049-2C07-581D-6A79EA2AB17E}|src\\Services\\Order\\Conflux.Order\\Conflux.Order.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\src\\services\\order\\conflux.order\\clients\\inventory\\inventorygrpcclient.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{79CA5AE0-B049-2C07-581D-6A79EA2AB17E}|src\\Services\\Order\\Conflux.Order\\Conflux.Order.csproj|solutionrelative:src\\services\\order\\conflux.order\\clients\\inventory\\inventorygrpcclient.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{7055E10A-2F8F-55ED-463D-CC865171554D}|src\\Services\\Inventory\\Conflux.Inventory\\Conflux.Inventory.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\src\\services\\inventory\\conflux.inventory\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -41,12 +53,64 @@
       "VerticalTabListWidth": 256,
       "DocumentGroups": [
         {
-          "DockedHeight": 235,
-          "SelectedChildIndex": 1,
+          "DockedHeight": 269,
+          "SelectedChildIndex": 0,
           "Children": [
             {
               "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "PaymentEndpointsTests.cs",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\tests\\Services\\Payment\\Conflux.Payment.IntegrationTests\\PaymentEndpointsTests.cs",
+              "RelativeDocumentMoniker": "tests\\Services\\Payment\\Conflux.Payment.IntegrationTests\\PaymentEndpointsTests.cs",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\tests\\Services\\Payment\\Conflux.Payment.IntegrationTests\\PaymentEndpointsTests.cs",
+              "RelativeToolTip": "tests\\Services\\Payment\\Conflux.Payment.IntegrationTests\\PaymentEndpointsTests.cs",
+              "ViewState": "AgIAAAoDAAAAAAAAAAAowBsDAAAiAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-30T12:11:03.478Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
               "DocumentIndex": 2,
+              "Title": "OrderDbContext.cs",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Order\\Conflux.Order\\Infrastructure\\OrderDbContext.cs",
+              "RelativeDocumentMoniker": "src\\Services\\Order\\Conflux.Order\\Infrastructure\\OrderDbContext.cs",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Order\\Conflux.Order\\Infrastructure\\OrderDbContext.cs",
+              "RelativeToolTip": "src\\Services\\Order\\Conflux.Order\\Infrastructure\\OrderDbContext.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-30T12:08:58.305Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "PaymentApplicationService.cs",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Payment\\Conflux.Payment\\Application\\Payments\\PaymentApplicationService.cs",
+              "RelativeDocumentMoniker": "src\\Services\\Payment\\Conflux.Payment\\Application\\Payments\\PaymentApplicationService.cs",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Payment\\Conflux.Payment\\Application\\Payments\\PaymentApplicationService.cs",
+              "RelativeToolTip": "src\\Services\\Payment\\Conflux.Payment\\Application\\Payments\\PaymentApplicationService.cs",
+              "ViewState": "AgIAAC8CAAAAAAAAAAAmwD0CAAAeAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-30T09:09:42.186Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Conflux.Payment.csproj",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Payment\\Conflux.Payment\\Conflux.Payment.csproj",
+              "RelativeDocumentMoniker": "src\\Services\\Payment\\Conflux.Payment\\Conflux.Payment.csproj",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Payment\\Conflux.Payment\\Conflux.Payment.csproj",
+              "RelativeToolTip": "src\\Services\\Payment\\Conflux.Payment\\Conflux.Payment.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABoAAAAKAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-09-30T09:01:48.787Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
               "Title": "InventoryGrpcClient.cs",
               "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Order\\Conflux.Order\\Clients\\Inventory\\InventoryGrpcClient.cs",
               "RelativeDocumentMoniker": "src\\Services\\Order\\Conflux.Order\\Clients\\Inventory\\InventoryGrpcClient.cs",
@@ -54,25 +118,23 @@
               "RelativeToolTip": "src\\Services\\Order\\Conflux.Order\\Clients\\Inventory\\InventoryGrpcClient.cs",
               "ViewState": "AgIAAN4AAAAAAAAAAADwv/cAAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-09-30T08:16:05.983Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-09-30T08:16:05.983Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 5,
               "Title": "OrderInventoryOrchestrator.cs",
               "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Order\\Conflux.Order\\Application\\Orders\\OrderInventoryOrchestrator.cs",
               "RelativeDocumentMoniker": "src\\Services\\Order\\Conflux.Order\\Application\\Orders\\OrderInventoryOrchestrator.cs",
               "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Order\\Conflux.Order\\Application\\Orders\\OrderInventoryOrchestrator.cs",
               "RelativeToolTip": "src\\Services\\Order\\Conflux.Order\\Application\\Orders\\OrderInventoryOrchestrator.cs",
-              "ViewState": "AgIAAPwCAAAAAAAAAADwv/4CAAABAAAAAAAAAA==",
+              "ViewState": "AgIAANUBAAAAAAAAAAAmwMEBAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-09-30T08:01:33.611Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-09-30T08:01:33.611Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 7,
               "Title": "Program.cs",
               "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Inventory\\Conflux.Inventory\\Program.cs",
               "RelativeDocumentMoniker": "src\\Services\\Inventory\\Conflux.Inventory\\Program.cs",
@@ -80,12 +142,11 @@
               "RelativeToolTip": "src\\Services\\Inventory\\Conflux.Inventory\\Program.cs",
               "ViewState": "AgIAABIAAAAAAAAAAAAAAB4AAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-09-30T07:02:03.984Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-09-30T07:02:03.984Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 8,
               "Title": "InventoryGrpcTests.cs",
               "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\tests\\Services\\Inventory\\Conflux.Inventory.IntegrationTests\\InventoryGrpcTests.cs",
               "RelativeDocumentMoniker": "tests\\Services\\Inventory\\Conflux.Inventory.IntegrationTests\\InventoryGrpcTests.cs",
@@ -93,12 +154,11 @@
               "RelativeToolTip": "tests\\Services\\Inventory\\Conflux.Inventory.IntegrationTests\\InventoryGrpcTests.cs",
               "ViewState": "AgIAAOIBAAAAAAAAAADwv/QBAAAsAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-09-30T06:58:02.019Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-09-30T06:58:02.019Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 9,
               "Title": "Conflux.Inventory.csproj",
               "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Inventory\\Conflux.Inventory\\Conflux.Inventory.csproj",
               "RelativeDocumentMoniker": "src\\Services\\Inventory\\Conflux.Inventory\\Conflux.Inventory.csproj",
@@ -111,7 +171,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 10,
               "Title": "Conflux.Contracts.csproj",
               "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\BuildingBlocks\\Conflux.Contracts\\Conflux.Contracts.csproj",
               "RelativeDocumentMoniker": "src\\BuildingBlocks\\Conflux.Contracts\\Conflux.Contracts.csproj",
@@ -125,38 +185,12 @@
           ]
         },
         {
-          "DockedHeight": 135,
-          "SelectedChildIndex": 1,
+          "DockedHeight": 101,
+          "SelectedChildIndex": 5,
           "Children": [
             {
               "$type": "Bookmark",
               "Name": "ST:5:0:{d212f56b-c48a-434c-a121-1c5d80b59b9f}"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "OrderEndpointsTests.cs",
-              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\tests\\Services\\Order\\Conflux.Order.IntegrationTests\\OrderEndpointsTests.cs",
-              "RelativeDocumentMoniker": "tests\\Services\\Order\\Conflux.Order.IntegrationTests\\OrderEndpointsTests.cs",
-              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\tests\\Services\\Order\\Conflux.Order.IntegrationTests\\OrderEndpointsTests.cs",
-              "RelativeToolTip": "tests\\Services\\Order\\Conflux.Order.IntegrationTests\\OrderEndpointsTests.cs",
-              "ViewState": "AgIAAGYBAAAAAAAAAAAAAGoBAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-09-30T08:19:50.154Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "IInventoryClient.cs",
-              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Order\\Conflux.Order\\Clients\\Inventory\\IInventoryClient.cs",
-              "RelativeDocumentMoniker": "src\\Services\\Order\\Conflux.Order\\Clients\\Inventory\\IInventoryClient.cs",
-              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Order\\Conflux.Order\\Clients\\Inventory\\IInventoryClient.cs",
-              "RelativeToolTip": "src\\Services\\Order\\Conflux.Order\\Clients\\Inventory\\IInventoryClient.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAKoAAAABAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-09-30T08:15:43.72Z",
-              "EditorCaption": ""
             },
             {
               "$type": "Bookmark",
@@ -173,6 +207,19 @@
             {
               "$type": "Bookmark",
               "Name": "ST:4:0:{d212f56b-c48a-434c-a121-1c5d80b59b9f}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "IInventoryClient.cs",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Order\\Conflux.Order\\Clients\\Inventory\\IInventoryClient.cs",
+              "RelativeDocumentMoniker": "src\\Services\\Order\\Conflux.Order\\Clients\\Inventory\\IInventoryClient.cs",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Order\\Conflux.Order\\Clients\\Inventory\\IInventoryClient.cs",
+              "RelativeToolTip": "src\\Services\\Order\\Conflux.Order\\Clients\\Inventory\\IInventoryClient.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAARAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-30T08:15:43.72Z",
+              "EditorCaption": ""
             }
           ]
         }
