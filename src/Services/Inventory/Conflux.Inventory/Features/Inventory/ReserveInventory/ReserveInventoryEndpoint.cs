@@ -1,5 +1,4 @@
-using Conflux.Inventory.Infrastructure;
-using Microsoft.EntityFrameworkCore;
+using Conflux.Inventory.Application.Inventory;
 
 namespace Conflux.Inventory.Features.Inventory.ReserveInventory;
 
@@ -8,6 +7,8 @@ namespace Conflux.Inventory.Features.Inventory.ReserveInventory;
 /// </summary>
 public static class ReserveInventoryEndpoint
 {
+    private const string IdempotencyKeyHeader = "Idempotency-Key";
+
     /// <summary>
     /// Maps the inventory reservation endpoint to the application.
     /// </summary>
@@ -27,57 +28,91 @@ public static class ReserveInventoryEndpoint
     private static async Task<IResult> HandleAsync(
         Guid inventoryId,
         ReserveInventoryRequest request,
-        InventoryDbContext dbContext,
+        HttpRequest httpRequest,
+        InventoryApplicationService inventoryService,
         CancellationToken cancellationToken)
     {
-        if (request.Quantity <= 0)
+        if (!httpRequest.Headers.TryGetValue(
+                IdempotencyKeyHeader,
+                out var idempotencyKeyValue))
         {
             return Results.BadRequest(
                 new
                 {
                     error =
-                        "Reservation quantity must be greater than zero."
+                        $"The {IdempotencyKeyHeader} header is required."
                 });
         }
 
-        var inventoryItem = await dbContext.InventoryItems
-            .SingleOrDefaultAsync(
-                item => item.Id == inventoryId,
+        if (!Guid.TryParse(
+                idempotencyKeyValue.ToString(),
+                out var reservationId) ||
+            reservationId == Guid.Empty)
+        {
+            return Results.BadRequest(
+                new
+                {
+                    error =
+                        $"The {IdempotencyKeyHeader} header must contain a valid non-empty GUID."
+                });
+        }
+
+        var result =
+            await inventoryService.ReserveAsync(
+                inventoryId,
+                reservationId,
+                request.Quantity,
                 cancellationToken);
 
-        if (inventoryItem is null)
+        return result.Status switch
         {
-            return Results.NotFound(
-                new
-                {
-                    error = "Inventory item was not found."
-                });
-        }
+            ReserveInventoryResultStatus.Success =>
+                Results.Ok(
+                    new ReserveInventoryResponse
+                    {
+                        InventoryId =
+                            result.InventoryItemId,
+                        Sku =
+                            result.Sku,
+                        ReservedQuantity =
+                            result.ReservedQuantity,
+                        AvailableQuantity =
+                            result.AvailableQuantity,
+                        TotalReservedQuantity =
+                            result.TotalReservedQuantity
+                    }),
 
-        if (request.Quantity > inventoryItem.AvailableQuantity)
-        {
-            return Results.Conflict(
-                new
-                {
-                    error = "Insufficient inventory."
-                });
-        }
+            ReserveInventoryResultStatus.Invalid =>
+                Results.BadRequest(
+                    new
+                    {
+                        error = result.Error
+                    }),
 
-        inventoryItem.Reserve(request.Quantity);
+            ReserveInventoryResultStatus.NotFound =>
+                Results.NotFound(
+                    new
+                    {
+                        error = result.Error
+                    }),
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+            ReserveInventoryResultStatus.InsufficientInventory =>
+                Results.Conflict(
+                    new
+                    {
+                        error = result.Error
+                    }),
 
-        var response = new ReserveInventoryResponse
-        {
-            InventoryId = inventoryItem.Id,
-            Sku = inventoryItem.Sku,
-            ReservedQuantity = request.Quantity,
-            AvailableQuantity =
-                inventoryItem.AvailableQuantity,
-            TotalReservedQuantity =
-                inventoryItem.ReservedQuantity
+            ReserveInventoryResultStatus.Conflict =>
+                Results.Conflict(
+                    new
+                    {
+                        error = result.Error
+                    }),
+
+            _ =>
+                throw new InvalidOperationException(
+                    $"Unsupported reservation result status: {result.Status}.")
         };
-
-        return Results.Ok(response);
     }
 }

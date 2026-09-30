@@ -9,6 +9,9 @@
     <File Path="NuGet.Config" />
   </Folder>
   <Folder Name="/src/" />
+  <Folder Name="/src/BuildingBlocks/">
+    <Project Path="src/BuildingBlocks/Conflux.Contracts/Conflux.Contracts.csproj" />
+  </Folder>
   <Folder Name="/src/Gateway/">
     <Project Path="src/Gateway/Conflux.Gateway/Conflux.Gateway.csproj" />
   </Folder>
@@ -22,6 +25,9 @@
   <Folder Name="/src/Services/Inventory/">
     <Project Path="src/Services/Inventory/Conflux.Inventory/Conflux.Inventory.csproj" />
   </Folder>
+  <Folder Name="/src/Services/Order/">
+    <Project Path="src/Services/Order/Conflux.Order/Conflux.Order.csproj" />
+  </Folder>
   <Folder Name="/tests/" />
   <Folder Name="/tests/Contract/" />
   <Folder Name="/tests/EndToEnd/" />
@@ -34,6 +40,9 @@
   </Folder>
   <Folder Name="/tests/Services/Inventory/">
     <Project Path="tests/Services/Inventory/Conflux.Inventory.IntegrationTests/Conflux.Inventory.IntegrationTests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Services/Order/">
+    <Project Path="tests/Services/Order/Conflux.Order.IntegrationTests/Conflux.Order.IntegrationTests.csproj" />
   </Folder>
   <Folder Name="/tests/Unit/" />
 </Solution>

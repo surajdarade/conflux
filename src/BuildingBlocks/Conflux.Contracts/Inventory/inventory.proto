@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+option csharp_namespace = "Conflux.Contracts.Inventory";
+
+package conflux.inventory;
+
+service InventoryService {
+  rpc ReserveInventory (ReserveInventoryRequest)
+      returns (ReserveInventoryResponse);
+
+  rpc ReleaseInventory (ReleaseInventoryRequest)
+      returns (ReleaseInventoryResponse);
+}
+
+message ReserveInventoryRequest {
+  string inventory_item_id = 1;
+  string reservation_id = 2;
+  int32 quantity = 3;
+}
+
+message ReserveInventoryResponse {
+  string inventory_item_id = 1;
+  string reservation_id = 2;
+  string sku = 3;
+  int32 reserved_quantity = 4;
+  int32 available_quantity = 5;
+  int32 total_reserved_quantity = 6;
+}
+
+message ReleaseInventoryRequest {
+  string inventory_item_id = 1;
+  string reservation_id = 2;
+}
+
+message ReleaseInventoryResponse {
+  string inventory_item_id = 1;
+  string reservation_id = 2;
+  string sku = 3;
+  int32 released_quantity = 4;
+  int32 available_quantity = 5;
+  int32 total_reserved_quantity = 6;
+  bool already_released = 7;
+}

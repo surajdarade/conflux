@@ -12,7 +12,12 @@
 		<PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
 		<PackageReference Include="Microsoft.NET.Test.Sdk" />
 		<PackageReference Include="Testcontainers.PostgreSql" />
+
+		<PackageReference Include="Google.Protobuf" />
+		<PackageReference Include="Grpc.Net.Client" />
+
 		<PackageReference Include="xunit.v3" />
+
 		<PackageReference Include="xunit.runner.visualstudio">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>
@@ -27,7 +32,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\..\..\..\src\Services\Inventory\Conflux.Inventory\Conflux.Inventory.csproj" />
+		<ProjectReference
+		  Include="..\..\..\..\src\Services\Inventory\Conflux.Inventory\Conflux.Inventory.csproj"
+		  Aliases="global,Inventory" />
 	</ItemGroup>
 
 </Project>

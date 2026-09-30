@@ -26,6 +26,12 @@ public sealed class InventoryDbContext : DbContext
     public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
 
     /// <summary>
+    /// Gets the durable reservations managed by the Inventory service.
+    /// </summary>
+    public DbSet<InventoryReservation> InventoryReservations =>
+        Set<InventoryReservation>();
+
+    /// <summary>
     /// Configures the database model for the Inventory service.
     /// </summary>
     /// <param name="modelBuilder">
@@ -58,6 +64,37 @@ public sealed class InventoryDbContext : DbContext
 
             entity.Property(item => item.UpdatedAt)
                 .IsRequired();
+        });
+
+        modelBuilder.Entity<InventoryReservation>(entity =>
+        {
+            entity.ToTable("inventory_reservations");
+
+            entity.HasKey(reservation => reservation.Id);
+
+            entity.Property(reservation => reservation.ReservationId)
+                .IsRequired();
+
+            entity.HasIndex(reservation => reservation.ReservationId)
+                .IsUnique();
+
+            entity.Property(reservation => reservation.InventoryItemId)
+                .IsRequired();
+
+            entity.HasIndex(reservation => reservation.InventoryItemId);
+
+            entity.Property(reservation => reservation.Quantity)
+                .IsRequired();
+
+            entity.Property(reservation => reservation.CreatedAt)
+                .IsRequired();
+
+            entity.Property(reservation => reservation.ReleasedAt);
+
+            entity.HasOne<InventoryItem>()
+                .WithMany()
+                .HasForeignKey(reservation => reservation.InventoryItemId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

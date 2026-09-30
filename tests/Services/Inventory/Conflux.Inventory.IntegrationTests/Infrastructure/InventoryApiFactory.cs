@@ -1,28 +1,31 @@
+extern alias Inventory;
+
 using Conflux.Inventory.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Testcontainers.PostgreSql;
+using InventoryProgram = Inventory::Program;
 
 namespace Conflux.Inventory.IntegrationTests.Infrastructure;
 
 /// <summary>
 /// Provides a PostgreSQL-backed ASP.NET Core test host for Inventory integration tests.
 /// </summary>
-public sealed class InventoryApiFactory : WebApplicationFactory<Program>
-{
+public sealed class InventoryApiFactory :
+    WebApplicationFactory<InventoryProgram> {
     private readonly PostgreSqlContainer _postgresContainer;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="InventoryApiFactory"/> class.
+    /// Initializes a new instance of the
+    /// <see cref="InventoryApiFactory"/> class.
     /// </summary>
     /// <param name="postgresContainer">
     /// The PostgreSQL container used by the test host.
     /// </param>
     public InventoryApiFactory(
-        PostgreSqlContainer postgresContainer)
-    {
+        PostgreSqlContainer postgresContainer) {
         _postgresContainer = postgresContainer;
     }
 
@@ -33,8 +36,7 @@ public sealed class InventoryApiFactory : WebApplicationFactory<Program>
     /// The web host builder being configured.
     /// </param>
     protected override void ConfigureWebHost(
-        IWebHostBuilder builder)
-    {
+        IWebHostBuilder builder) {
         builder.UseSetting(
             "ConnectionStrings:InventoryDatabase",
             _postgresContainer.GetConnectionString());
@@ -49,8 +51,7 @@ public sealed class InventoryApiFactory : WebApplicationFactory<Program>
     /// The token used to cancel the migration operation.
     /// </param>
     public async Task ApplyDatabaseMigrationsAsync(
-        CancellationToken cancellationToken)
-    {
+        CancellationToken cancellationToken) {
         using var scope = Services.CreateScope();
 
         var dbContext = scope.ServiceProvider

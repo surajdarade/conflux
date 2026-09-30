@@ -1,6 +1,9 @@
+using Conflux.Inventory.Application.Inventory;
 using Conflux.Inventory.Features.Inventory.CreateInventory;
 using Conflux.Inventory.Features.Inventory.GetInventory;
+using Conflux.Inventory.Features.Inventory.ReleaseInventory;
 using Conflux.Inventory.Features.Inventory.ReserveInventory;
+using Conflux.Inventory.Grpc;
 using Conflux.Inventory.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,6 +16,10 @@ builder.Services.AddDbContext<InventoryDbContext>(options =>
         builder.Configuration.GetConnectionString(
             "InventoryDatabase")));
 
+builder.Services.AddScoped<InventoryApplicationService>();
+
+builder.Services.AddGrpc();
+
 var app = builder.Build();
 
 app.MapHealthChecks("/health");
@@ -20,6 +27,9 @@ app.MapHealthChecks("/health");
 app.MapCreateInventoryEndpoint();
 app.MapGetInventoryEndpoint();
 app.MapReserveInventoryEndpoint();
+app.MapReleaseInventoryEndpoint();
+
+app.MapGrpcService<InventoryGrpcService>();
 
 app.Run();
 
