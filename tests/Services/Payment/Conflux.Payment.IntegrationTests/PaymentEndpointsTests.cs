@@ -4,6 +4,7 @@ using Conflux.Payment.IntegrationTests.Infrastructure;
 using FluentAssertions;
 using Payment::Conflux.Payment.Features.Payments.CapturePayment;
 using Conflux.Payment.Features.Payments.VoidPayment;
+using Conflux.Payment.Features.Payments.GetPayment;
 using System.Net;
 using System.Net.Http.Json;
 using Xunit;
@@ -533,7 +534,8 @@ public sealed class PaymentEndpointsTests :
     /// Verifies that an authorized payment can be captured.
     /// </summary>
     [Fact]
-    public async Task CapturePayment_AuthorizedPayment_ReturnsOk() {
+    public async Task CapturePayment_AuthorizedPayment_ReturnsOk()
+    {
         var authorization =
             await CreateAuthorizedPaymentAsync();
 
@@ -571,7 +573,8 @@ public sealed class PaymentEndpointsTests :
     /// Verifies that capturing an already captured payment is idempotent.
     /// </summary>
     [Fact]
-    public async Task CapturePayment_AlreadyCapturedPayment_ReturnsOk() {
+    public async Task CapturePayment_AlreadyCapturedPayment_ReturnsOk()
+    {
         var authorization =
             await CreateAuthorizedPaymentAsync();
 
@@ -620,7 +623,8 @@ public sealed class PaymentEndpointsTests :
     /// returns not found.
     /// </summary>
     [Fact]
-    public async Task CapturePayment_NonexistentPayment_ReturnsNotFound() {
+    public async Task CapturePayment_NonexistentPayment_ReturnsNotFound()
+    {
         var paymentId = Guid.NewGuid();
 
         var response =
@@ -638,7 +642,8 @@ public sealed class PaymentEndpointsTests :
     /// Verifies that an invalid payment state cannot be captured.
     /// </summary>
     [Fact]
-    public async Task CapturePayment_InvalidPaymentState_ReturnsConflict() {
+    public async Task CapturePayment_InvalidPaymentState_ReturnsConflict()
+    {
         var authorization =
             await CreateAuthorizedPaymentAsync();
 
@@ -678,7 +683,8 @@ public sealed class PaymentEndpointsTests :
     /// Verifies that an authorized payment can be voided.
     /// </summary>
     [Fact]
-    public async Task VoidPayment_AuthorizedPayment_ReturnsOk() {
+    public async Task VoidPayment_AuthorizedPayment_ReturnsOk()
+    {
         var authorization =
             await CreateAuthorizedPaymentAsync();
 
@@ -716,7 +722,8 @@ public sealed class PaymentEndpointsTests :
     /// Verifies that voiding an already voided payment is idempotent.
     /// </summary>
     [Fact]
-    public async Task VoidPayment_AlreadyVoidedPayment_ReturnsOk() {
+    public async Task VoidPayment_AlreadyVoidedPayment_ReturnsOk()
+    {
         var authorization =
             await CreateAuthorizedPaymentAsync();
 
@@ -765,7 +772,8 @@ public sealed class PaymentEndpointsTests :
     /// returns not found.
     /// </summary>
     [Fact]
-    public async Task VoidPayment_NonexistentPayment_ReturnsNotFound() {
+    public async Task VoidPayment_NonexistentPayment_ReturnsNotFound()
+    {
         var paymentId = Guid.NewGuid();
 
         var response =
@@ -783,7 +791,8 @@ public sealed class PaymentEndpointsTests :
     /// Verifies that a captured payment cannot be voided.
     /// </summary>
     [Fact]
-    public async Task VoidPayment_CapturedPayment_ReturnsConflict() {
+    public async Task VoidPayment_CapturedPayment_ReturnsConflict()
+    {
         var authorization =
             await CreateAuthorizedPaymentAsync();
 
@@ -808,8 +817,165 @@ public sealed class PaymentEndpointsTests :
             .Be(HttpStatusCode.Conflict);
     }
 
+    /// <summary>
+    /// Verifies that an authorized payment can be retrieved.
+    /// </summary>
+    [Fact]
+    public async Task GetPayment_AuthorizedPayment_ReturnsOk()
+    {
+        var authorization =
+            await CreateAuthorizedPaymentAsync();
+
+        var response =
+            await _client.GetAsync(
+                $"/api/v1/payments/{authorization.PaymentId}",
+                TestContext.Current.CancellationToken);
+
+        response.StatusCode
+            .Should()
+            .Be(HttpStatusCode.OK);
+
+        var payment =
+            await response.Content
+                .ReadFromJsonAsync<GetPaymentResponse>(
+                    TestContext.Current.CancellationToken);
+
+        payment.Should().NotBeNull();
+
+        payment!.PaymentId
+            .Should()
+            .Be(authorization.PaymentId);
+
+        payment.OrderId
+            .Should()
+            .Be(authorization.OrderId);
+
+        payment.CustomerId
+            .Should()
+            .Be(authorization.CustomerId);
+
+        payment.Amount
+            .Should()
+            .Be(authorization.Amount);
+
+        payment.Currency
+            .Should()
+            .Be(authorization.Currency);
+
+        payment.Status
+            .Should()
+            .Be(Conflux.Payment.Domain.PaymentStatus.Authorized);
+    }
+
+    /// <summary>
+    /// Verifies that a captured payment can be retrieved.
+    /// </summary>
+    [Fact]
+    public async Task GetPayment_CapturedPayment_ReturnsOk()
+    {
+        var authorization =
+            await CreateAuthorizedPaymentAsync();
+
+        var captureResponse =
+            await _client.PostAsync(
+                $"/api/v1/payments/{authorization.PaymentId}/capture",
+                null,
+                TestContext.Current.CancellationToken);
+
+        captureResponse.StatusCode
+            .Should()
+            .Be(HttpStatusCode.OK);
+
+        var response =
+            await _client.GetAsync(
+                $"/api/v1/payments/{authorization.PaymentId}",
+                TestContext.Current.CancellationToken);
+
+        response.StatusCode
+            .Should()
+            .Be(HttpStatusCode.OK);
+
+        var payment =
+            await response.Content
+                .ReadFromJsonAsync<GetPaymentResponse>(
+                    TestContext.Current.CancellationToken);
+
+        payment.Should().NotBeNull();
+
+        payment!.PaymentId
+            .Should()
+            .Be(authorization.PaymentId);
+
+        payment.Status
+            .Should()
+            .Be(Conflux.Payment.Domain.PaymentStatus.Captured);
+    }
+
+    /// <summary>
+    /// Verifies that a voided payment can be retrieved.
+    /// </summary>
+    [Fact]
+    public async Task GetPayment_VoidedPayment_ReturnsOk()
+    {
+        var authorization =
+            await CreateAuthorizedPaymentAsync();
+
+        var voidResponse =
+            await _client.PostAsync(
+                $"/api/v1/payments/{authorization.PaymentId}/void",
+                null,
+                TestContext.Current.CancellationToken);
+
+        voidResponse.StatusCode
+            .Should()
+            .Be(HttpStatusCode.OK);
+
+        var response =
+            await _client.GetAsync(
+                $"/api/v1/payments/{authorization.PaymentId}",
+                TestContext.Current.CancellationToken);
+
+        response.StatusCode
+            .Should()
+            .Be(HttpStatusCode.OK);
+
+        var payment =
+            await response.Content
+                .ReadFromJsonAsync<GetPaymentResponse>(
+                    TestContext.Current.CancellationToken);
+
+        payment.Should().NotBeNull();
+
+        payment!.PaymentId
+            .Should()
+            .Be(authorization.PaymentId);
+
+        payment.Status
+            .Should()
+            .Be(Conflux.Payment.Domain.PaymentStatus.Voided);
+    }
+
+    /// <summary>
+    /// Verifies that retrieving a nonexistent payment returns not found.
+    /// </summary>
+    [Fact]
+    public async Task GetPayment_NonexistentPayment_ReturnsNotFound()
+    {
+        var paymentId = Guid.NewGuid();
+
+        var response =
+            await _client.GetAsync(
+                $"/api/v1/payments/{paymentId}",
+                TestContext.Current.CancellationToken);
+
+        response.StatusCode
+            .Should()
+            .Be(HttpStatusCode.NotFound);
+    }
+
     private async Task<AuthorizePaymentResponse>
-        CreateAuthorizedPaymentAsync() {
+        CreateAuthorizedPaymentAsync()
+    {
         var request = new AuthorizePaymentRequest
         {
             OrderId = Guid.NewGuid(),

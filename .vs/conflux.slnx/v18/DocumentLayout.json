@@ -3,12 +3,16 @@
   "WorkspaceRootPath": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{592478F3-B2CD-6FDD-4E9B-8D74024EA341}|tests\\Services\\Payment\\Conflux.Payment.IntegrationTests\\Conflux.Payment.IntegrationTests.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\tests\\services\\payment\\conflux.payment.integrationtests\\paymentendpointstests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{592478F3-B2CD-6FDD-4E9B-8D74024EA341}|tests\\Services\\Payment\\Conflux.Payment.IntegrationTests\\Conflux.Payment.IntegrationTests.csproj|solutionrelative:tests\\services\\payment\\conflux.payment.integrationtests\\paymentendpointstests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{60841A6C-85F4-9DA6-21FA-58183FF32B94}|src\\Services\\Payment\\Conflux.Payment\\Conflux.Payment.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\src\\services\\payment\\conflux.payment\\features\\payments\\getpayment\\getpaymentendpoint.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{60841A6C-85F4-9DA6-21FA-58183FF32B94}|src\\Services\\Payment\\Conflux.Payment\\Conflux.Payment.csproj|solutionrelative:src\\services\\payment\\conflux.payment\\features\\payments\\getpayment\\getpaymentendpoint.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{60841A6C-85F4-9DA6-21FA-58183FF32B94}|src\\Services\\Payment\\Conflux.Payment\\Conflux.Payment.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\src\\services\\payment\\conflux.payment\\application\\payments\\paymentapplicationservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{60841A6C-85F4-9DA6-21FA-58183FF32B94}|src\\Services\\Payment\\Conflux.Payment\\Conflux.Payment.csproj|solutionrelative:src\\services\\payment\\conflux.payment\\application\\payments\\paymentapplicationservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{592478F3-B2CD-6FDD-4E9B-8D74024EA341}|tests\\Services\\Payment\\Conflux.Payment.IntegrationTests\\Conflux.Payment.IntegrationTests.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\tests\\services\\payment\\conflux.payment.integrationtests\\paymentendpointstests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{592478F3-B2CD-6FDD-4E9B-8D74024EA341}|tests\\Services\\Payment\\Conflux.Payment.IntegrationTests\\Conflux.Payment.IntegrationTests.csproj|solutionrelative:tests\\services\\payment\\conflux.payment.integrationtests\\paymentendpointstests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{79CA5AE0-B049-2C07-581D-6A79EA2AB17E}|src\\Services\\Order\\Conflux.Order\\Conflux.Order.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\src\\services\\order\\conflux.order\\infrastructure\\orderdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -59,19 +63,32 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
+              "Title": "GetPaymentEndpoint.cs",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Payment\\Conflux.Payment\\Features\\Payments\\GetPayment\\GetPaymentEndpoint.cs",
+              "RelativeDocumentMoniker": "src\\Services\\Payment\\Conflux.Payment\\Features\\Payments\\GetPayment\\GetPaymentEndpoint.cs",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Payment\\Conflux.Payment\\Features\\Payments\\GetPayment\\GetPaymentEndpoint.cs",
+              "RelativeToolTip": "src\\Services\\Payment\\Conflux.Payment\\Features\\Payments\\GetPayment\\GetPaymentEndpoint.cs",
+              "ViewState": "AgIAACEAAAAAAAAAAAAYwC8AAAAvAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-30T12:40:03.857Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
               "Title": "PaymentEndpointsTests.cs",
               "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\tests\\Services\\Payment\\Conflux.Payment.IntegrationTests\\PaymentEndpointsTests.cs",
               "RelativeDocumentMoniker": "tests\\Services\\Payment\\Conflux.Payment.IntegrationTests\\PaymentEndpointsTests.cs",
               "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\tests\\Services\\Payment\\Conflux.Payment.IntegrationTests\\PaymentEndpointsTests.cs",
               "RelativeToolTip": "tests\\Services\\Payment\\Conflux.Payment.IntegrationTests\\PaymentEndpointsTests.cs",
-              "ViewState": "AgIAAAoDAAAAAAAAAAAowBsDAAAiAAAAAAAAAA==",
+              "ViewState": "AgIAABIDAAAAAAAAAAAowCoDAABBAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-09-30T12:11:03.478Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 3,
               "Title": "OrderDbContext.cs",
               "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Order\\Conflux.Order\\Infrastructure\\OrderDbContext.cs",
               "RelativeDocumentMoniker": "src\\Services\\Order\\Conflux.Order\\Infrastructure\\OrderDbContext.cs",
@@ -90,14 +107,14 @@
               "RelativeDocumentMoniker": "src\\Services\\Payment\\Conflux.Payment\\Application\\Payments\\PaymentApplicationService.cs",
               "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Payment\\Conflux.Payment\\Application\\Payments\\PaymentApplicationService.cs",
               "RelativeToolTip": "src\\Services\\Payment\\Conflux.Payment\\Application\\Payments\\PaymentApplicationService.cs",
-              "ViewState": "AgIAAC8CAAAAAAAAAAAmwD0CAAAeAAAAAAAAAA==",
+              "ViewState": "AgIAAMkCAAAAAAAAAAAuwN4CAAAFAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-09-30T09:09:42.186Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 5,
               "Title": "Conflux.Payment.csproj",
               "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Payment\\Conflux.Payment\\Conflux.Payment.csproj",
               "RelativeDocumentMoniker": "src\\Services\\Payment\\Conflux.Payment\\Conflux.Payment.csproj",
@@ -110,7 +127,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 7,
               "Title": "InventoryGrpcClient.cs",
               "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Order\\Conflux.Order\\Clients\\Inventory\\InventoryGrpcClient.cs",
               "RelativeDocumentMoniker": "src\\Services\\Order\\Conflux.Order\\Clients\\Inventory\\InventoryGrpcClient.cs",
@@ -122,7 +139,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 6,
               "Title": "OrderInventoryOrchestrator.cs",
               "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Order\\Conflux.Order\\Application\\Orders\\OrderInventoryOrchestrator.cs",
               "RelativeDocumentMoniker": "src\\Services\\Order\\Conflux.Order\\Application\\Orders\\OrderInventoryOrchestrator.cs",
@@ -134,7 +151,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 8,
               "Title": "Program.cs",
               "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Inventory\\Conflux.Inventory\\Program.cs",
               "RelativeDocumentMoniker": "src\\Services\\Inventory\\Conflux.Inventory\\Program.cs",
@@ -146,7 +163,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
+              "DocumentIndex": 9,
               "Title": "InventoryGrpcTests.cs",
               "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\tests\\Services\\Inventory\\Conflux.Inventory.IntegrationTests\\InventoryGrpcTests.cs",
               "RelativeDocumentMoniker": "tests\\Services\\Inventory\\Conflux.Inventory.IntegrationTests\\InventoryGrpcTests.cs",
@@ -158,7 +175,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 9,
+              "DocumentIndex": 10,
               "Title": "Conflux.Inventory.csproj",
               "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Inventory\\Conflux.Inventory\\Conflux.Inventory.csproj",
               "RelativeDocumentMoniker": "src\\Services\\Inventory\\Conflux.Inventory\\Conflux.Inventory.csproj",
@@ -171,7 +188,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 10,
+              "DocumentIndex": 11,
               "Title": "Conflux.Contracts.csproj",
               "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\BuildingBlocks\\Conflux.Contracts\\Conflux.Contracts.csproj",
               "RelativeDocumentMoniker": "src\\BuildingBlocks\\Conflux.Contracts\\Conflux.Contracts.csproj",
@@ -210,7 +227,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 4,
               "Title": "IInventoryClient.cs",
               "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Order\\Conflux.Order\\Clients\\Inventory\\IInventoryClient.cs",
               "RelativeDocumentMoniker": "src\\Services\\Order\\Conflux.Order\\Clients\\Inventory\\IInventoryClient.cs",

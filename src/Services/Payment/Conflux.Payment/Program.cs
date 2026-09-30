@@ -1,6 +1,7 @@
 using Conflux.Payment.Application.Payments;
 using Conflux.Payment.Features.Payments.AuthorizePayment;
 using Conflux.Payment.Features.Payments.CapturePayment;
+using Conflux.Payment.Features.Payments.GetPayment;
 using Conflux.Payment.Features.Payments.VoidPayment;
 using Conflux.Payment.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -26,6 +27,8 @@ app.MapAuthorizePaymentEndpoint();
 app.MapCapturePaymentEndpoint();
 
 app.MapVoidPaymentEndpoint();
+
+app.MapGetPaymentEndpoint();
 
 app.Run();
 

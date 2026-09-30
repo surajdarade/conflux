@@ -304,6 +304,45 @@ public sealed class PaymentApplicationService
             alreadyVoided: false);
     }
 
+    /// <summary>
+    /// Gets a payment by its identifier.
+    /// </summary>
+    /// <param name="paymentId">
+    /// The payment identifier.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// The token used to cancel the operation.
+    /// </param>
+    /// <returns>
+    /// The payment lookup result.
+    /// </returns>
+    public async Task<GetPaymentResult> GetAsync(
+        Guid paymentId,
+        CancellationToken cancellationToken)
+    {
+        if (paymentId == Guid.Empty)
+        {
+            return GetPaymentResult.NotFound(
+                "Payment was not found.");
+        }
+
+        var payment =
+            await _dbContext.Payments
+                .AsNoTracking()
+                .SingleOrDefaultAsync(
+                    currentPayment =>
+                        currentPayment.Id == paymentId,
+                    cancellationToken);
+
+        if (payment is null)
+        {
+            return GetPaymentResult.NotFound(
+                "Payment was not found.");
+        }
+
+        return GetPaymentResult.Success(payment);
+    }
+
     private static bool IsUniqueViolation(
         DbUpdateException exception)
     {
@@ -645,4 +684,87 @@ public enum VoidPaymentResultStatus
     /// The payment cannot be voided in its current state.
     /// </summary>
     Conflict
+}
+
+/// <summary>
+/// Represents the possible results of a payment lookup operation.
+/// </summary>
+public sealed record GetPaymentResult
+{
+    private GetPaymentResult(
+        GetPaymentResultStatus status,
+        PaymentEntity? payment,
+        string? error)
+    {
+        Status = status;
+        Payment = payment;
+        Error = error;
+    }
+
+    /// <summary>
+    /// Gets the result status.
+    /// </summary>
+    public GetPaymentResultStatus Status { get; }
+
+    /// <summary>
+    /// Gets the payment when the operation succeeded.
+    /// </summary>
+    public PaymentEntity? Payment { get; }
+
+    /// <summary>
+    /// Gets the error message when the operation did not succeed.
+    /// </summary>
+    public string? Error { get; }
+
+    /// <summary>
+    /// Creates a successful payment lookup result.
+    /// </summary>
+    /// <param name="payment">
+    /// The payment.
+    /// </param>
+    /// <returns>
+    /// A successful result.
+    /// </returns>
+    public static GetPaymentResult Success(
+        PaymentEntity payment)
+    {
+        return new GetPaymentResult(
+            GetPaymentResultStatus.Success,
+            payment,
+            null);
+    }
+
+    /// <summary>
+    /// Creates a not-found payment lookup result.
+    /// </summary>
+    /// <param name="error">
+    /// The error message.
+    /// </param>
+    /// <returns>
+    /// A not-found result.
+    /// </returns>
+    public static GetPaymentResult NotFound(
+        string error)
+    {
+        return new GetPaymentResult(
+            GetPaymentResultStatus.NotFound,
+            null,
+            error);
+    }
+}
+
+/// <summary>
+/// Represents the status of a payment lookup operation.
+/// </summary>
+public enum GetPaymentResultStatus
+{
+    /// <summary>
+    /// The payment was found.
+    /// </summary>
+    Success,
+
+    /// <summary>
+    /// The payment was not found.
+    /// </summary>
+    NotFound
 }
