@@ -25,7 +25,8 @@ public sealed class OrderEndpointsTests :
     public OrderEndpointsTests(
         OrderTestFixture fixture) {
         _factory = new OrderApiFactory(
-            fixture.PostgresContainer);
+            fixture.PostgresContainer,
+            fixture.InventoryFactory);
 
         _client = _factory.CreateClient();
     }
@@ -71,9 +72,13 @@ public sealed class OrderEndpointsTests :
             httpRequest,
             TestContext.Current.CancellationToken);
 
-        Assert.Equal(
-            HttpStatusCode.Created,
-            response.StatusCode);
+        var responseBody =
+            await response.Content.ReadAsStringAsync(
+                TestContext.Current.CancellationToken);
+
+        Assert.True(
+            response.StatusCode == HttpStatusCode.Created,
+            $"Expected 201 Created but received {(int)response.StatusCode} {response.StatusCode}. Response body: {responseBody}");
 
         var result =
             await response.Content.ReadFromJsonAsync<CreateOrderResponse>(
@@ -83,7 +88,7 @@ public sealed class OrderEndpointsTests :
         Assert.NotEqual(Guid.Empty, result.OrderId);
         Assert.Equal(customerId, result.CustomerId);
         Assert.Equal(
-            OrderStatus.Pending,
+            OrderStatus.InventoryReserved,
             result.Status);
         Assert.Equal(251.00m, result.TotalAmount);
         Assert.Equal("INR", result.Currency);
@@ -434,7 +439,7 @@ public sealed class OrderEndpointsTests :
             result.CustomerId);
 
         Assert.Equal(
-            OrderStatus.Pending,
+            OrderStatus.InventoryReserved,
             result.Status);
 
         Assert.Equal(

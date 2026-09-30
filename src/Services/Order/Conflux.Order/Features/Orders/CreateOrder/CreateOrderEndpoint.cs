@@ -1,3 +1,4 @@
+using Conflux.Order.Application.Orders;
 using Conflux.Order.Domain;
 using Conflux.Order.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +10,8 @@ namespace Conflux.Order.Features.Orders.CreateOrder;
 /// <summary>
 /// Provides the HTTP endpoint for creating orders.
 /// </summary>
-public static class CreateOrderEndpoint {
+public static class CreateOrderEndpoint
+{
     private const string IdempotencyKeyHeader = "Idempotency-Key";
 
     /// <summary>
@@ -19,7 +21,8 @@ public static class CreateOrderEndpoint {
     /// The endpoint route builder used to register the HTTP endpoint.
     /// </param>
     public static void MapCreateOrderEndpoint(
-        this IEndpointRouteBuilder endpoints) {
+        this IEndpointRouteBuilder endpoints)
+    {
         endpoints.MapPost(
                 "/api/v1/orders",
                 HandleAsync)
@@ -31,8 +34,11 @@ public static class CreateOrderEndpoint {
         CreateOrderRequest request,
         HttpRequest httpRequest,
         OrderDbContext dbContext,
-        CancellationToken cancellationToken) {
-        if (request.CustomerId == Guid.Empty) {
+        OrderInventoryOrchestrator inventoryOrchestrator,
+        CancellationToken cancellationToken)
+    {
+        if (request.CustomerId == Guid.Empty)
+        {
             return Results.BadRequest(
                 new
                 {
@@ -42,7 +48,8 @@ public static class CreateOrderEndpoint {
 
         if (!httpRequest.Headers.TryGetValue(
                 IdempotencyKeyHeader,
-                out var idempotencyKeyValue)) {
+                out var idempotencyKeyValue))
+        {
             return Results.BadRequest(
                 new
                 {
@@ -53,7 +60,8 @@ public static class CreateOrderEndpoint {
 
         var idempotencyKey = idempotencyKeyValue.ToString().Trim();
 
-        if (string.IsNullOrWhiteSpace(idempotencyKey)) {
+        if (string.IsNullOrWhiteSpace(idempotencyKey))
+        {
             return Results.BadRequest(
                 new
                 {
@@ -62,7 +70,8 @@ public static class CreateOrderEndpoint {
                 });
         }
 
-        if (idempotencyKey.Length > 256) {
+        if (idempotencyKey.Length > 256)
+        {
             return Results.BadRequest(
                 new
                 {
@@ -72,7 +81,8 @@ public static class CreateOrderEndpoint {
         }
 
         if (request.Items is null ||
-            request.Items.Count == 0) {
+            request.Items.Count == 0)
+        {
             return Results.BadRequest(
                 new
                 {
@@ -80,8 +90,10 @@ public static class CreateOrderEndpoint {
                 });
         }
 
-        foreach (var item in request.Items) {
-            if (string.IsNullOrWhiteSpace(item.Sku)) {
+        foreach (var item in request.Items)
+        {
+            if (string.IsNullOrWhiteSpace(item.Sku))
+            {
                 return Results.BadRequest(
                     new
                     {
@@ -89,7 +101,8 @@ public static class CreateOrderEndpoint {
                     });
             }
 
-            if (item.Quantity <= 0) {
+            if (item.Quantity <= 0)
+            {
                 return Results.BadRequest(
                     new
                     {
@@ -98,7 +111,8 @@ public static class CreateOrderEndpoint {
                     });
             }
 
-            if (item.UnitPrice < 0) {
+            if (item.UnitPrice < 0)
+            {
                 return Results.BadRequest(
                     new
                     {
@@ -107,7 +121,8 @@ public static class CreateOrderEndpoint {
                     });
             }
 
-            if (string.IsNullOrWhiteSpace(item.Currency)) {
+            if (string.IsNullOrWhiteSpace(item.Currency))
+            {
                 return Results.BadRequest(
                     new
                     {
@@ -116,7 +131,8 @@ public static class CreateOrderEndpoint {
                     });
             }
 
-            if (item.Currency.Trim().Length != 3) {
+            if (item.Currency.Trim().Length != 3)
+            {
                 return Results.BadRequest(
                     new
                     {
@@ -134,14 +150,31 @@ public static class CreateOrderEndpoint {
                     order.IdempotencyKey == idempotencyKey,
                 cancellationToken);
 
-        if (existingOrder is not null) {
-            if (existingOrder.CustomerId != request.CustomerId) {
+        if (existingOrder is not null)
+        {
+            if (existingOrder.CustomerId != request.CustomerId)
+            {
                 return Results.Conflict(
                     new
                     {
                         error =
                             "The idempotency key is already associated with a different customer."
                     });
+            }
+
+            if (existingOrder.Status ==
+                OrderStatus.Pending)
+            {
+                var existingOrderInventoryResult =
+                    await inventoryOrchestrator
+                        .ReserveOrderInventoryAsync(
+                            existingOrder.Id,
+                            cancellationToken);
+
+                return BuildOrchestrationResult(
+                    existingOrderInventoryResult,
+                    existingOrder,
+                    created: false);
             }
 
             return Results.Ok(
@@ -153,7 +186,8 @@ public static class CreateOrderEndpoint {
             request.CustomerId,
             idempotencyKey);
 
-        foreach (var item in request.Items) {
+        foreach (var item in request.Items)
+        {
             var orderItem = new OrderItem(
                 Guid.NewGuid(),
                 item.Sku,
@@ -166,12 +200,14 @@ public static class CreateOrderEndpoint {
 
         dbContext.Orders.Add(order);
 
-        try {
+        try
+        {
             await dbContext.SaveChangesAsync(
                 cancellationToken);
         }
         catch (DbUpdateException exception)
-            when (IsUniqueConstraintViolation(exception)) {
+            when (IsUniqueConstraintViolation(exception))
+        {
             var concurrentOrder = await dbContext.Orders
                 .AsNoTracking()
                 .Include(existing => existing.Items)
@@ -181,12 +217,14 @@ public static class CreateOrderEndpoint {
                         idempotencyKey,
                     cancellationToken);
 
-            if (concurrentOrder is null) {
+            if (concurrentOrder is null)
+            {
                 throw;
             }
 
             if (concurrentOrder.CustomerId !=
-                request.CustomerId) {
+                request.CustomerId)
+            {
                 return Results.Conflict(
                     new
                     {
@@ -195,17 +233,125 @@ public static class CreateOrderEndpoint {
                     });
             }
 
+            if (concurrentOrder.Status ==
+                OrderStatus.Pending)
+            {
+                var concurrentOrderInventoryResult =
+                    await inventoryOrchestrator
+                        .ReserveOrderInventoryAsync(
+                            concurrentOrder.Id,
+                            cancellationToken);
+
+                var refreshedConcurrentOrder =
+                    await dbContext.Orders
+                        .AsNoTracking()
+                        .Include(existing => existing.Items)
+                        .SingleAsync(
+                            existing => existing.Id == concurrentOrder.Id,
+                            cancellationToken);
+
+                return BuildOrchestrationResult(
+                    concurrentOrderInventoryResult,
+                    refreshedConcurrentOrder,
+                    created: false);
+            }
+
             return Results.Ok(
                 BuildResponse(concurrentOrder));
         }
 
-        return Results.Created(
-            $"/api/v1/orders/{order.Id}",
-            BuildResponse(order));
+        var inventoryResult =
+            await inventoryOrchestrator
+                .ReserveOrderInventoryAsync(
+                    order.Id,
+                    cancellationToken);
+
+        return BuildOrchestrationResult(
+            inventoryResult,
+            order,
+            created: true);
+    }
+
+    private static IResult BuildOrchestrationResult(
+        OrderInventoryOrchestrationResult result,
+        OrderEntity order,
+        bool created)
+    {
+        return result.Status switch
+        {
+            OrderInventoryOrchestrationResultStatus.Success =>
+                created
+                    ? Results.Created(
+                        $"/api/v1/orders/{order.Id}",
+                        BuildResponse(order))
+                    : Results.Ok(
+                        BuildResponse(order)),
+
+            OrderInventoryOrchestrationResultStatus.NotFound =>
+                Results.NotFound(
+                    new
+                    {
+                        error = result.Error
+                    }),
+
+            OrderInventoryOrchestrationResultStatus.InvalidState =>
+                Results.Conflict(
+                    new
+                    {
+                        error = result.Error
+                    }),
+
+            OrderInventoryOrchestrationResultStatus.Invalid =>
+                Results.BadRequest(
+                    new
+                    {
+                        error = result.Error
+                    }),
+
+            OrderInventoryOrchestrationResultStatus.InventoryNotFound =>
+                Results.NotFound(
+                    new
+                    {
+                        error = result.Error,
+                        orderId = order.Id,
+                        status = order.Status
+                    }),
+
+            OrderInventoryOrchestrationResultStatus.InventoryUnavailable =>
+                Results.Conflict(
+                    new
+                    {
+                        error = result.Error,
+                        orderId = order.Id,
+                        status = order.Status
+                    }),
+
+            OrderInventoryOrchestrationResultStatus.Conflict =>
+                Results.Conflict(
+                    new
+                    {
+                        error = result.Error,
+                        orderId = order.Id,
+                        status = order.Status
+                    }),
+
+            OrderInventoryOrchestrationResultStatus.Failed =>
+                Results.StatusCode(
+                    StatusCodes.Status502BadGateway),
+
+            OrderInventoryOrchestrationResultStatus.CompensationFailed =>
+                Results.StatusCode(
+                    StatusCodes.Status500InternalServerError),
+
+            _ =>
+                Results.StatusCode(
+                    StatusCodes.Status500InternalServerError)
+        };
     }
 
     private static CreateOrderResponse BuildResponse(
-        OrderEntity order) {
+        OrderEntity order)
+    {
         return new CreateOrderResponse
         {
             OrderId = order.Id,
@@ -230,7 +376,8 @@ public static class CreateOrderEndpoint {
     }
 
     private static bool IsUniqueConstraintViolation(
-        DbUpdateException exception) {
+        DbUpdateException exception)
+    {
         return exception.InnerException is PostgresException
         {
             SqlState: PostgresErrorCodes.UniqueViolation

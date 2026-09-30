@@ -3,22 +3,37 @@ namespace Conflux.Order.Clients.Inventory;
 /// <summary>
 /// Provides the Order service with access to inventory operations.
 /// </summary>
-public interface IInventoryClient
-{
+public interface IInventoryClient {
     /// <summary>
-    /// Reserves inventory for an order operation.
+    /// Resolves an inventory item by its stock keeping unit.
+    /// </summary>
+    /// <param name="sku">
+    /// The stock keeping unit to resolve.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// The cancellation token for the operation.
+    /// </param>
+    /// <returns>
+    /// The inventory item identified by the SKU.
+    /// </returns>
+    Task<InventoryItemLookupResult> GetBySkuAsync(
+        string sku,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Reserves inventory for a business reservation.
     /// </summary>
     /// <param name="inventoryItemId">
-    /// The inventory item to reserve.
+    /// The inventory item identifier.
     /// </param>
     /// <param name="reservationId">
-    /// The durable reservation identifier used for idempotency.
+    /// The business reservation identifier.
     /// </param>
     /// <param name="quantity">
     /// The quantity to reserve.
     /// </param>
     /// <param name="cancellationToken">
-    /// The token used to cancel the operation.
+    /// The cancellation token for the operation.
     /// </param>
     /// <returns>
     /// The inventory reservation result.
@@ -30,16 +45,16 @@ public interface IInventoryClient
         CancellationToken cancellationToken);
 
     /// <summary>
-    /// Releases inventory previously reserved for an order operation.
+    /// Releases an existing inventory reservation.
     /// </summary>
     /// <param name="inventoryItemId">
-    /// The inventory item associated with the reservation.
+    /// The inventory item identifier.
     /// </param>
     /// <param name="reservationId">
-    /// The reservation identifier.
+    /// The business reservation identifier.
     /// </param>
     /// <param name="cancellationToken">
-    /// The token used to cancel the operation.
+    /// The cancellation token for the operation.
     /// </param>
     /// <returns>
     /// The inventory release result.
@@ -51,10 +66,34 @@ public interface IInventoryClient
 }
 
 /// <summary>
-/// Represents the result returned after reserving inventory.
+/// Represents inventory information resolved from a SKU.
 /// </summary>
-public sealed record InventoryReservationResult
-{
+public sealed record InventoryItemLookupResult {
+    /// <summary>
+    /// Gets the inventory item identifier.
+    /// </summary>
+    public required Guid InventoryItemId { get; init; }
+
+    /// <summary>
+    /// Gets the stock keeping unit.
+    /// </summary>
+    public required string Sku { get; init; }
+
+    /// <summary>
+    /// Gets the currently available quantity.
+    /// </summary>
+    public int AvailableQuantity { get; init; }
+
+    /// <summary>
+    /// Gets the currently reserved quantity.
+    /// </summary>
+    public int ReservedQuantity { get; init; }
+}
+
+/// <summary>
+/// Represents the result of an inventory reservation.
+/// </summary>
+public sealed record InventoryReservationResult {
     /// <summary>
     /// Gets the inventory item identifier.
     /// </summary>
@@ -71,7 +110,7 @@ public sealed record InventoryReservationResult
     public required string Sku { get; init; }
 
     /// <summary>
-    /// Gets the quantity reserved.
+    /// Gets the quantity reserved by this operation.
     /// </summary>
     public int ReservedQuantity { get; init; }
 
@@ -92,10 +131,9 @@ public sealed record InventoryReservationResult
 }
 
 /// <summary>
-/// Represents the result returned after releasing inventory.
+/// Represents the result of releasing an inventory reservation.
 /// </summary>
-public sealed record InventoryReleaseResult
-{
+public sealed record InventoryReleaseResult {
     /// <summary>
     /// Gets the inventory item identifier.
     /// </summary>
@@ -112,12 +150,12 @@ public sealed record InventoryReleaseResult
     public required string Sku { get; init; }
 
     /// <summary>
-    /// Gets the quantity released.
+    /// Gets the quantity released by this operation.
     /// </summary>
     public int ReleasedQuantity { get; init; }
 
     /// <summary>
-    /// Gets the quantity currently available.
+    /// Gets the quantity remaining available.
     /// </summary>
     public int AvailableQuantity { get; init; }
 
@@ -127,7 +165,7 @@ public sealed record InventoryReleaseResult
     public int TotalReservedQuantity { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether the reservation had already been released.
+    /// Gets a value indicating whether the reservation was already released.
     /// </summary>
     public bool AlreadyReleased { get; init; }
 }

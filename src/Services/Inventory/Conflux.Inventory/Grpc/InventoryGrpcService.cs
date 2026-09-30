@@ -26,6 +26,63 @@ public sealed class InventoryGrpcService :
     }
 
     /// <summary>
+    /// Gets inventory information by stock keeping unit.
+    /// </summary>
+    /// <param name="request">
+    /// The inventory lookup request.
+    /// </param>
+    /// <param name="context">
+    /// The gRPC server call context.
+    /// </param>
+    /// <returns>
+    /// The inventory lookup result.
+    /// </returns>
+    public override async Task<GetInventoryBySkuResponse>
+        GetInventoryBySku(
+            GetInventoryBySkuRequest request,
+            ServerCallContext context)
+    {
+        var result =
+            await _inventoryService.GetBySkuAsync(
+                request.Sku,
+                context.CancellationToken);
+
+        return result.Status switch
+        {
+            GetInventoryBySkuResultStatus.Success =>
+                new GetInventoryBySkuResponse
+                {
+                    InventoryItemId =
+                        result.InventoryItemId.ToString(),
+                    Sku =
+                        result.Sku,
+                    AvailableQuantity =
+                        result.AvailableQuantity,
+                    ReservedQuantity =
+                        result.ReservedQuantity
+                },
+
+            GetInventoryBySkuResultStatus.Invalid =>
+                throw new RpcException(
+                    new Status(
+                        StatusCode.InvalidArgument,
+                        result.Error ?? "Invalid SKU.")),
+
+            GetInventoryBySkuResultStatus.NotFound =>
+                throw new RpcException(
+                    new Status(
+                        StatusCode.NotFound,
+                        result.Error ?? "Inventory was not found.")),
+
+            _ =>
+                throw new RpcException(
+                    new Status(
+                        StatusCode.Internal,
+                        "Unsupported inventory lookup result status."))
+        };
+    }
+
+    /// <summary>
     /// Reserves inventory for a business operation.
     /// </summary>
     /// <param name="request">

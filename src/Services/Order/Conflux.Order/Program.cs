@@ -1,4 +1,5 @@
 using Conflux.Contracts.Inventory;
+using Conflux.Order.Application.Orders;
 using Conflux.Order.Clients.Inventory;
 using Conflux.Order.Features.Orders.CreateOrder;
 using Conflux.Order.Features.Orders.GetOrder;
@@ -40,6 +41,8 @@ builder.Services.AddSingleton<InventoryService.InventoryServiceClient>(
     });
 
 builder.Services.AddScoped<IInventoryClient, InventoryGrpcClient>();
+
+builder.Services.AddScoped<OrderInventoryOrchestrator>();
 
 var app = builder.Build();
 

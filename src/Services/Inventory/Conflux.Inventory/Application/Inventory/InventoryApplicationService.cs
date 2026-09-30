@@ -27,6 +27,51 @@ public sealed class InventoryApplicationService
     }
 
     /// <summary>
+    /// Finds inventory by stock keeping unit.
+    /// </summary>
+    /// <param name="sku">
+    /// The stock keeping unit to locate.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// The token used to cancel the operation.
+    /// </param>
+    /// <returns>
+    /// The inventory lookup result.
+    /// </returns>
+    public async Task<GetInventoryBySkuResult> GetBySkuAsync(
+        string sku,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(sku))
+        {
+            return GetInventoryBySkuResult.Invalid(
+                "SKU cannot be empty.");
+        }
+
+        var normalizedSku =
+            sku.Trim().ToUpperInvariant();
+
+        var inventory =
+            await _dbContext.InventoryItems
+                .AsNoTracking()
+                .SingleOrDefaultAsync(
+                    item => item.Sku == normalizedSku,
+                    cancellationToken);
+
+        if (inventory is null)
+        {
+            return GetInventoryBySkuResult.NotFound(
+                $"Inventory for SKU '{normalizedSku}' was not found.");
+        }
+
+        return GetInventoryBySkuResult.Success(
+            inventory.Id,
+            inventory.Sku,
+            inventory.AvailableQuantity,
+            inventory.ReservedQuantity);
+    }
+
+    /// <summary>
     /// Attempts to reserve inventory for a business operation.
     /// </summary>
     /// <param name="inventoryItemId">
@@ -842,4 +887,110 @@ public enum ReleaseInventoryResultStatus
     /// The release conflicts with the current inventory state.
     /// </summary>
     Conflict
+}
+
+/// <summary>
+/// Represents the result of an inventory lookup by SKU.
+/// </summary>
+public sealed record GetInventoryBySkuResult
+{
+    private GetInventoryBySkuResult()
+    {
+    }
+
+    /// <summary>
+    /// Gets the result status.
+    /// </summary>
+    public GetInventoryBySkuResultStatus Status { get; private init; }
+
+    /// <summary>
+    /// Gets the inventory item identifier.
+    /// </summary>
+    public Guid InventoryItemId { get; private init; }
+
+    /// <summary>
+    /// Gets the normalized SKU.
+    /// </summary>
+    public string Sku { get; private init; } = string.Empty;
+
+    /// <summary>
+    /// Gets the currently available quantity.
+    /// </summary>
+    public int AvailableQuantity { get; private init; }
+
+    /// <summary>
+    /// Gets the currently reserved quantity.
+    /// </summary>
+    public int ReservedQuantity { get; private init; }
+
+    /// <summary>
+    /// Gets the error message when the operation does not succeed.
+    /// </summary>
+    public string? Error { get; private init; }
+
+    /// <summary>
+    /// Creates a successful lookup result.
+    /// </summary>
+    public static GetInventoryBySkuResult Success(
+        Guid inventoryItemId,
+        string sku,
+        int availableQuantity,
+        int reservedQuantity)
+    {
+        return new GetInventoryBySkuResult
+        {
+            Status = GetInventoryBySkuResultStatus.Success,
+            InventoryItemId = inventoryItemId,
+            Sku = sku,
+            AvailableQuantity = availableQuantity,
+            ReservedQuantity = reservedQuantity
+        };
+    }
+
+    /// <summary>
+    /// Creates an invalid lookup result.
+    /// </summary>
+    public static GetInventoryBySkuResult Invalid(
+        string error)
+    {
+        return new GetInventoryBySkuResult
+        {
+            Status = GetInventoryBySkuResultStatus.Invalid,
+            Error = error
+        };
+    }
+
+    /// <summary>
+    /// Creates a not-found lookup result.
+    /// </summary>
+    public static GetInventoryBySkuResult NotFound(
+        string error)
+    {
+        return new GetInventoryBySkuResult
+        {
+            Status = GetInventoryBySkuResultStatus.NotFound,
+            Error = error
+        };
+    }
+}
+
+/// <summary>
+/// Represents the possible outcomes of an inventory SKU lookup.
+/// </summary>
+public enum GetInventoryBySkuResultStatus
+{
+    /// <summary>
+    /// The inventory item was found.
+    /// </summary>
+    Success = 0,
+
+    /// <summary>
+    /// The supplied SKU was invalid.
+    /// </summary>
+    Invalid = 1,
+
+    /// <summary>
+    /// No inventory item exists for the supplied SKU.
+    /// </summary>
+    NotFound = 2
 }

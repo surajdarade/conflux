@@ -10,6 +10,9 @@ service InventoryService {
 
   rpc ReleaseInventory (ReleaseInventoryRequest)
       returns (ReleaseInventoryResponse);
+
+  rpc GetInventoryBySku (GetInventoryBySkuRequest)
+      returns (GetInventoryBySkuResponse);
 }
 
 message ReserveInventoryRequest {
@@ -40,4 +43,15 @@ message ReleaseInventoryResponse {
   int32 available_quantity = 5;
   int32 total_reserved_quantity = 6;
   bool already_released = 7;
+}
+
+message GetInventoryBySkuRequest {
+  string sku = 1;
+}
+
+message GetInventoryBySkuResponse {
+  string inventory_item_id = 1;
+  string sku = 2;
+  int32 available_quantity = 3;
+  int32 reserved_quantity = 4;
 }
