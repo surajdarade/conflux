@@ -1,0 +1,39 @@
+<Solution>
+  <Folder Name="/benchmarks/" />
+  <Folder Name="/deploy/" />
+  <Folder Name="/load-tests/" />
+  <Folder Name="/Solution Items/">
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="global.json" />
+    <File Path="NuGet.Config" />
+  </Folder>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Gateway/">
+    <Project Path="src/Gateway/Conflux.Gateway/Conflux.Gateway.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/" />
+  <Folder Name="/src/Services/Catalog/">
+    <Project Path="src/Services/Catalog/Conflux.Catalog/Conflux.Catalog.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Identity/">
+    <Project Path="src/Services/Identity/Conflux.Identity/Conflux.Identity.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Inventory/">
+    <Project Path="src/Services/Inventory/Conflux.Inventory/Conflux.Inventory.csproj" />
+  </Folder>
+  <Folder Name="/tests/" />
+  <Folder Name="/tests/Contract/" />
+  <Folder Name="/tests/EndToEnd/" />
+  <Folder Name="/tests/Services/" />
+  <Folder Name="/tests/Services/Catalog/">
+    <Project Path="tests/Services/Catalog/Conflux.Catalog.IntegrationTests/Conflux.Catalog.IntegrationTests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Services/Identity/">
+    <Project Path="tests/Services/Identity/Conflux.Identity.IntegrationTests/Conflux.Identity.IntegrationTests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Services/Inventory/">
+    <Project Path="tests/Services/Inventory/Conflux.Inventory.IntegrationTests/Conflux.Inventory.IntegrationTests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Unit/" />
+</Solution>

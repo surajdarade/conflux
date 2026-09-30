@@ -1,0 +1,32 @@
+services:
+
+  postgres:
+    image: postgres:17
+    container_name: conflux-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: conflux
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - conflux-postgres-data:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d:ro
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U postgres -d conflux"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+volumes:
+  conflux-postgres-data:

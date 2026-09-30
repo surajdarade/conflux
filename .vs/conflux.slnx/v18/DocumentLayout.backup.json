@@ -1,0 +1,599 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{863C4E5E-899A-A09D-DBB1-5E6865A11288}|src\\Services\\Catalog\\Conflux.Catalog\\Conflux.Catalog.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\src\\services\\catalog\\conflux.catalog\\features\\products\\listproducts\\listproductsresponse.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{863C4E5E-899A-A09D-DBB1-5E6865A11288}|src\\Services\\Catalog\\Conflux.Catalog\\Conflux.Catalog.csproj|solutionrelative:src\\services\\catalog\\conflux.catalog\\features\\products\\listproducts\\listproductsresponse.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{FE6F528E-DCA9-DE93-4545-BB2B866C0D9B}|src\\Gateway\\Conflux.Gateway\\Conflux.Gateway.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\src\\gateway\\conflux.gateway\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{FE6F528E-DCA9-DE93-4545-BB2B866C0D9B}|src\\Gateway\\Conflux.Gateway\\Conflux.Gateway.csproj|solutionrelative:src\\gateway\\conflux.gateway\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{898B34D4-2722-FE3C-6DDB-A879C59481D7}|tests\\Services\\Catalog\\Conflux.Catalog.IntegrationTests\\Conflux.Catalog.IntegrationTests.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\tests\\services\\catalog\\conflux.catalog.integrationtests\\catalogendpointstests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{898B34D4-2722-FE3C-6DDB-A879C59481D7}|tests\\Services\\Catalog\\Conflux.Catalog.IntegrationTests\\Conflux.Catalog.IntegrationTests.csproj|solutionrelative:tests\\services\\catalog\\conflux.catalog.integrationtests\\catalogendpointstests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{898B34D4-2722-FE3C-6DDB-A879C59481D7}|tests\\Services\\Catalog\\Conflux.Catalog.IntegrationTests\\Conflux.Catalog.IntegrationTests.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\tests\\services\\catalog\\conflux.catalog.integrationtests\\conflux.catalog.integrationtests.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{898B34D4-2722-FE3C-6DDB-A879C59481D7}|tests\\Services\\Catalog\\Conflux.Catalog.IntegrationTests\\Conflux.Catalog.IntegrationTests.csproj|solutionrelative:tests\\services\\catalog\\conflux.catalog.integrationtests\\conflux.catalog.integrationtests.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{863C4E5E-899A-A09D-DBB1-5E6865A11288}|src\\Services\\Catalog\\Conflux.Catalog\\Conflux.Catalog.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\src\\services\\catalog\\conflux.catalog\\domain\\product.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{863C4E5E-899A-A09D-DBB1-5E6865A11288}|src\\Services\\Catalog\\Conflux.Catalog\\Conflux.Catalog.csproj|solutionrelative:src\\services\\catalog\\conflux.catalog\\domain\\product.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{863C4E5E-899A-A09D-DBB1-5E6865A11288}|src\\Services\\Catalog\\Conflux.Catalog\\Conflux.Catalog.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\src\\services\\catalog\\conflux.catalog\\conflux.catalog.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{863C4E5E-899A-A09D-DBB1-5E6865A11288}|src\\Services\\Catalog\\Conflux.Catalog\\Conflux.Catalog.csproj|solutionrelative:src\\services\\catalog\\conflux.catalog\\conflux.catalog.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9B02EC3E-0BD9-B5F9-AC48-89C05E0B9698}|tests\\Services\\Identity\\Conflux.Identity.IntegrationTests\\Conflux.Identity.IntegrationTests.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\tests\\services\\identity\\conflux.identity.integrationtests\\identityendpointstests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9B02EC3E-0BD9-B5F9-AC48-89C05E0B9698}|tests\\Services\\Identity\\Conflux.Identity.IntegrationTests\\Conflux.Identity.IntegrationTests.csproj|solutionrelative:tests\\services\\identity\\conflux.identity.integrationtests\\identityendpointstests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{FE6F528E-DCA9-DE93-4545-BB2B866C0D9B}|src\\Gateway\\Conflux.Gateway\\Conflux.Gateway.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\src\\gateway\\conflux.gateway\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{FE6F528E-DCA9-DE93-4545-BB2B866C0D9B}|src\\Gateway\\Conflux.Gateway\\Conflux.Gateway.csproj|solutionrelative:src\\gateway\\conflux.gateway\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{089100B1-113F-4E66-888A-E83F3999EAFD}|Solution Items{089100B1-113F-4E66-888A-E83F3999EAFD}|C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\Directory.Packages.props||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{089100B1-113F-4E66-888A-E83F3999EAFD}|Solution Items{089100B1-113F-4E66-888A-E83F3999EAFD}|solutionrelative:Directory.Packages.props||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9B02EC3E-0BD9-B5F9-AC48-89C05E0B9698}|tests\\Services\\Identity\\Conflux.Identity.IntegrationTests\\Conflux.Identity.IntegrationTests.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\tests\\services\\identity\\conflux.identity.integrationtests\\conflux.identity.integrationtests.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{9B02EC3E-0BD9-B5F9-AC48-89C05E0B9698}|tests\\Services\\Identity\\Conflux.Identity.IntegrationTests\\Conflux.Identity.IntegrationTests.csproj|solutionrelative:tests\\services\\identity\\conflux.identity.integrationtests\\conflux.identity.integrationtests.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{FE6F528E-DCA9-DE93-4545-BB2B866C0D9B}|src\\Gateway\\Conflux.Gateway\\Conflux.Gateway.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\src\\gateway\\conflux.gateway\\conflux.gateway.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{FE6F528E-DCA9-DE93-4545-BB2B866C0D9B}|src\\Gateway\\Conflux.Gateway\\Conflux.Gateway.csproj|solutionrelative:src\\gateway\\conflux.gateway\\conflux.gateway.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9B02EC3E-0BD9-B5F9-AC48-89C05E0B9698}|tests\\Services\\Identity\\Conflux.Identity.IntegrationTests\\Conflux.Identity.IntegrationTests.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\tests\\services\\identity\\conflux.identity.integrationtests\\infrastructure\\identitytestcollection.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9B02EC3E-0BD9-B5F9-AC48-89C05E0B9698}|tests\\Services\\Identity\\Conflux.Identity.IntegrationTests\\Conflux.Identity.IntegrationTests.csproj|solutionrelative:tests\\services\\identity\\conflux.identity.integrationtests\\infrastructure\\identitytestcollection.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9B02EC3E-0BD9-B5F9-AC48-89C05E0B9698}|tests\\Services\\Identity\\Conflux.Identity.IntegrationTests\\Conflux.Identity.IntegrationTests.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\tests\\services\\identity\\conflux.identity.integrationtests\\infrastructure\\identitytestfixture.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9B02EC3E-0BD9-B5F9-AC48-89C05E0B9698}|tests\\Services\\Identity\\Conflux.Identity.IntegrationTests\\Conflux.Identity.IntegrationTests.csproj|solutionrelative:tests\\services\\identity\\conflux.identity.integrationtests\\infrastructure\\identitytestfixture.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9B02EC3E-0BD9-B5F9-AC48-89C05E0B9698}|tests\\Services\\Identity\\Conflux.Identity.IntegrationTests\\Conflux.Identity.IntegrationTests.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\tests\\services\\identity\\conflux.identity.integrationtests\\infrastructure\\identityapifactory.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9B02EC3E-0BD9-B5F9-AC48-89C05E0B9698}|tests\\Services\\Identity\\Conflux.Identity.IntegrationTests\\Conflux.Identity.IntegrationTests.csproj|solutionrelative:tests\\services\\identity\\conflux.identity.integrationtests\\infrastructure\\identityapifactory.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{63E0F685-E718-EBD1-66E9-06D1F623FB26}|src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\src\\services\\identity\\conflux.identity\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{63E0F685-E718-EBD1-66E9-06D1F623FB26}|src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj|solutionrelative:src\\services\\identity\\conflux.identity\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{63E0F685-E718-EBD1-66E9-06D1F623FB26}|src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\src\\services\\identity\\conflux.identity\\features\\getcurrentuser\\getcurrentuserendpoint.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{63E0F685-E718-EBD1-66E9-06D1F623FB26}|src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj|solutionrelative:src\\services\\identity\\conflux.identity\\features\\getcurrentuser\\getcurrentuserendpoint.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{63E0F685-E718-EBD1-66E9-06D1F623FB26}|src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\src\\services\\identity\\conflux.identity\\features\\getcurrentuser\\getcurrentuserresponse.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{63E0F685-E718-EBD1-66E9-06D1F623FB26}|src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj|solutionrelative:src\\services\\identity\\conflux.identity\\features\\getcurrentuser\\getcurrentuserresponse.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{63E0F685-E718-EBD1-66E9-06D1F623FB26}|src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\src\\services\\identity\\conflux.identity\\configuration\\authentication\\authenticationservicecollectionextensions.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{63E0F685-E718-EBD1-66E9-06D1F623FB26}|src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj|solutionrelative:src\\services\\identity\\conflux.identity\\configuration\\authentication\\authenticationservicecollectionextensions.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{63E0F685-E718-EBD1-66E9-06D1F623FB26}|src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\src\\services\\identity\\conflux.identity\\features\\login\\loginendpoint.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{63E0F685-E718-EBD1-66E9-06D1F623FB26}|src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj|solutionrelative:src\\services\\identity\\conflux.identity\\features\\login\\loginendpoint.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{63E0F685-E718-EBD1-66E9-06D1F623FB26}|src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\src\\services\\identity\\conflux.identity\\features\\login\\loginresponse.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{63E0F685-E718-EBD1-66E9-06D1F623FB26}|src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj|solutionrelative:src\\services\\identity\\conflux.identity\\features\\login\\loginresponse.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{63E0F685-E718-EBD1-66E9-06D1F623FB26}|src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\src\\services\\identity\\conflux.identity\\features\\login\\loginrequest.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{63E0F685-E718-EBD1-66E9-06D1F623FB26}|src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj|solutionrelative:src\\services\\identity\\conflux.identity\\features\\login\\loginrequest.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{63E0F685-E718-EBD1-66E9-06D1F623FB26}|src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\src\\services\\identity\\conflux.identity\\appsettings.development.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{63E0F685-E718-EBD1-66E9-06D1F623FB26}|src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj|solutionrelative:src\\services\\identity\\conflux.identity\\appsettings.development.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{63E0F685-E718-EBD1-66E9-06D1F623FB26}|src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\src\\services\\identity\\conflux.identity\\configuration\\authentication\\jwtaccesstokenservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{63E0F685-E718-EBD1-66E9-06D1F623FB26}|src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj|solutionrelative:src\\services\\identity\\conflux.identity\\configuration\\authentication\\jwtaccesstokenservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{63E0F685-E718-EBD1-66E9-06D1F623FB26}|src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\src\\services\\identity\\conflux.identity\\configuration\\authentication\\iaccesstokenservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{63E0F685-E718-EBD1-66E9-06D1F623FB26}|src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj|solutionrelative:src\\services\\identity\\conflux.identity\\configuration\\authentication\\iaccesstokenservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{63E0F685-E718-EBD1-66E9-06D1F623FB26}|src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\src\\services\\identity\\conflux.identity\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{63E0F685-E718-EBD1-66E9-06D1F623FB26}|src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj|solutionrelative:src\\services\\identity\\conflux.identity\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{63E0F685-E718-EBD1-66E9-06D1F623FB26}|src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\src\\services\\identity\\conflux.identity\\conflux.identity.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{63E0F685-E718-EBD1-66E9-06D1F623FB26}|src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj|solutionrelative:src\\services\\identity\\conflux.identity\\conflux.identity.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{63E0F685-E718-EBD1-66E9-06D1F623FB26}|src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\src\\services\\identity\\conflux.identity\\features\\register\\registerendpoint.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{63E0F685-E718-EBD1-66E9-06D1F623FB26}|src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj|solutionrelative:src\\services\\identity\\conflux.identity\\features\\register\\registerendpoint.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{63E0F685-E718-EBD1-66E9-06D1F623FB26}|src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\src\\services\\identity\\conflux.identity\\domain\\user.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{63E0F685-E718-EBD1-66E9-06D1F623FB26}|src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj|solutionrelative:src\\services\\identity\\conflux.identity\\domain\\user.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{63E0F685-E718-EBD1-66E9-06D1F623FB26}|src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\src\\services\\identity\\conflux.identity\\features\\register\\registerresponse.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{63E0F685-E718-EBD1-66E9-06D1F623FB26}|src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj|solutionrelative:src\\services\\identity\\conflux.identity\\features\\register\\registerresponse.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{63E0F685-E718-EBD1-66E9-06D1F623FB26}|src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\src\\services\\identity\\conflux.identity\\features\\register\\registerrequest.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{63E0F685-E718-EBD1-66E9-06D1F623FB26}|src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj|solutionrelative:src\\services\\identity\\conflux.identity\\features\\register\\registerrequest.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{089100B1-113F-4E66-888A-E83F3999EAFD}|Solution Items{089100B1-113F-4E66-888A-E83F3999EAFD}|C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\Directory.Build.props||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{089100B1-113F-4E66-888A-E83F3999EAFD}|Solution Items{089100B1-113F-4E66-888A-E83F3999EAFD}|solutionrelative:Directory.Build.props||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{FE6F528E-DCA9-DE93-4545-BB2B866C0D9B}|src\\Gateway\\Conflux.Gateway\\Conflux.Gateway.csproj|c:\\users\\surajnarayandarade\\documents\\conflux\\src\\gateway\\conflux.gateway\\appsettings.development.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{FE6F528E-DCA9-DE93-4545-BB2B866C0D9B}|src\\Gateway\\Conflux.Gateway\\Conflux.Gateway.csproj|solutionrelative:src\\gateway\\conflux.gateway\\appsettings.development.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{089100B1-113F-4E66-888A-E83F3999EAFD}|Solution Items{089100B1-113F-4E66-888A-E83F3999EAFD}|C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\NuGet.Config||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{089100B1-113F-4E66-888A-E83F3999EAFD}|Solution Items{089100B1-113F-4E66-888A-E83F3999EAFD}|solutionrelative:NuGet.Config||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{089100B1-113F-4E66-888A-E83F3999EAFD}|Solution Items{089100B1-113F-4E66-888A-E83F3999EAFD}|C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\global.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{089100B1-113F-4E66-888A-E83F3999EAFD}|Solution Items{089100B1-113F-4E66-888A-E83F3999EAFD}|solutionrelative:global.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 1,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedHeight": 263,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "ListProductsResponse.cs",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Catalog\\Conflux.Catalog\\Features\\Products\\ListProducts\\ListProductsResponse.cs",
+              "RelativeDocumentMoniker": "src\\Services\\Catalog\\Conflux.Catalog\\Features\\Products\\ListProducts\\ListProductsResponse.cs",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Catalog\\Conflux.Catalog\\Features\\Products\\ListProducts\\ListProductsResponse.cs",
+              "RelativeToolTip": "src\\Services\\Catalog\\Conflux.Catalog\\Features\\Products\\ListProducts\\ListProductsResponse.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAKAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-30T05:29:03.535Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "CatalogEndpointsTests.cs",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\tests\\Services\\Catalog\\Conflux.Catalog.IntegrationTests\\CatalogEndpointsTests.cs",
+              "RelativeDocumentMoniker": "tests\\Services\\Catalog\\Conflux.Catalog.IntegrationTests\\CatalogEndpointsTests.cs",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\tests\\Services\\Catalog\\Conflux.Catalog.IntegrationTests\\CatalogEndpointsTests.cs",
+              "RelativeToolTip": "tests\\Services\\Catalog\\Conflux.Catalog.IntegrationTests\\CatalogEndpointsTests.cs",
+              "ViewState": "AgIAAAYBAAAAAAAAAAAAwBgBAAAsAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-30T05:28:33.43Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "Conflux.Catalog.IntegrationTests.csproj",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\tests\\Services\\Catalog\\Conflux.Catalog.IntegrationTests\\Conflux.Catalog.IntegrationTests.csproj",
+              "RelativeDocumentMoniker": "tests\\Services\\Catalog\\Conflux.Catalog.IntegrationTests\\Conflux.Catalog.IntegrationTests.csproj",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\tests\\Services\\Catalog\\Conflux.Catalog.IntegrationTests\\Conflux.Catalog.IntegrationTests.csproj",
+              "RelativeToolTip": "tests\\Services\\Catalog\\Conflux.Catalog.IntegrationTests\\Conflux.Catalog.IntegrationTests.csproj",
+              "ViewState": "AgIAABYAAAAAAAAAAAAgwCQAAAAKAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-09-30T05:21:02.61Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Product.cs",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Catalog\\Conflux.Catalog\\Domain\\Product.cs",
+              "RelativeDocumentMoniker": "src\\Services\\Catalog\\Conflux.Catalog\\Domain\\Product.cs",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Catalog\\Conflux.Catalog\\Domain\\Product.cs",
+              "RelativeToolTip": "src\\Services\\Catalog\\Conflux.Catalog\\Domain\\Product.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABMAAAAoAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-30T05:11:00.912Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
+              "Title": "IdentityApiFactory.cs",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\tests\\Services\\Identity\\Conflux.Identity.IntegrationTests\\Infrastructure\\IdentityApiFactory.cs",
+              "RelativeDocumentMoniker": "tests\\Services\\Identity\\Conflux.Identity.IntegrationTests\\Infrastructure\\IdentityApiFactory.cs",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\tests\\Services\\Identity\\Conflux.Identity.IntegrationTests\\Infrastructure\\IdentityApiFactory.cs",
+              "RelativeToolTip": "tests\\Services\\Identity\\Conflux.Identity.IntegrationTests\\Infrastructure\\IdentityApiFactory.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACgAAAASAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-29T15:15:03.09Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "Conflux.Identity.IntegrationTests.csproj",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\tests\\Services\\Identity\\Conflux.Identity.IntegrationTests\\Conflux.Identity.IntegrationTests.csproj",
+              "RelativeDocumentMoniker": "tests\\Services\\Identity\\Conflux.Identity.IntegrationTests\\Conflux.Identity.IntegrationTests.csproj",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\tests\\Services\\Identity\\Conflux.Identity.IntegrationTests\\Conflux.Identity.IntegrationTests.csproj",
+              "RelativeToolTip": "tests\\Services\\Identity\\Conflux.Identity.IntegrationTests\\Conflux.Identity.IntegrationTests.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACQAAAAKAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-09-29T15:12:57.539Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Gateway\\Conflux.Gateway\\appsettings.json",
+              "RelativeDocumentMoniker": "src\\Gateway\\Conflux.Gateway\\appsettings.json",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Gateway\\Conflux.Gateway\\appsettings.json",
+              "RelativeToolTip": "src\\Gateway\\Conflux.Gateway\\appsettings.json",
+              "ViewState": "AgIAAAgAAAAAAAAAAAAAABsAAAAuAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-09-29T13:26:15.701Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "Conflux.Catalog.csproj",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Catalog\\Conflux.Catalog\\Conflux.Catalog.csproj",
+              "RelativeDocumentMoniker": "src\\Services\\Catalog\\Conflux.Catalog\\Conflux.Catalog.csproj",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Catalog\\Conflux.Catalog\\Conflux.Catalog.csproj",
+              "RelativeToolTip": "src\\Services\\Catalog\\Conflux.Catalog\\Conflux.Catalog.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABkAAAAKAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-09-30T05:10:30.56Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "Conflux.Gateway.csproj",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Gateway\\Conflux.Gateway\\Conflux.Gateway.csproj",
+              "RelativeDocumentMoniker": "src\\Gateway\\Conflux.Gateway\\Conflux.Gateway.csproj",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Gateway\\Conflux.Gateway\\Conflux.Gateway.csproj",
+              "RelativeToolTip": "src\\Gateway\\Conflux.Gateway\\Conflux.Gateway.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAKAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-09-29T13:25:37.46Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "Directory.Packages.props",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\Directory.Packages.props",
+              "RelativeDocumentMoniker": "Directory.Packages.props",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\Directory.Packages.props",
+              "RelativeToolTip": "Directory.Packages.props",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAIAAAArAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003801|",
+              "WhenOpened": "2026-09-29T13:10:17.984Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Gateway\\Conflux.Gateway\\Program.cs",
+              "RelativeDocumentMoniker": "src\\Gateway\\Conflux.Gateway\\Program.cs",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Gateway\\Conflux.Gateway\\Program.cs",
+              "RelativeToolTip": "src\\Gateway\\Conflux.Gateway\\Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-29T13:26:00.429Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "IdentityEndpointsTests.cs",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\tests\\Services\\Identity\\Conflux.Identity.IntegrationTests\\IdentityEndpointsTests.cs",
+              "RelativeDocumentMoniker": "tests\\Services\\Identity\\Conflux.Identity.IntegrationTests\\IdentityEndpointsTests.cs",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\tests\\Services\\Identity\\Conflux.Identity.IntegrationTests\\IdentityEndpointsTests.cs",
+              "RelativeToolTip": "tests\\Services\\Identity\\Conflux.Identity.IntegrationTests\\IdentityEndpointsTests.cs",
+              "ViewState": "AgIAABoAAAAAAAAAAAAjwD8AAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-29T15:16:03.95Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "IdentityTestFixture.cs",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\tests\\Services\\Identity\\Conflux.Identity.IntegrationTests\\Infrastructure\\IdentityTestFixture.cs",
+              "RelativeDocumentMoniker": "tests\\Services\\Identity\\Conflux.Identity.IntegrationTests\\Infrastructure\\IdentityTestFixture.cs",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\tests\\Services\\Identity\\Conflux.Identity.IntegrationTests\\Infrastructure\\IdentityTestFixture.cs",
+              "RelativeToolTip": "tests\\Services\\Identity\\Conflux.Identity.IntegrationTests\\Infrastructure\\IdentityTestFixture.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACMAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-29T15:15:22.775Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "IdentityTestCollection.cs",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\tests\\Services\\Identity\\Conflux.Identity.IntegrationTests\\Infrastructure\\IdentityTestCollection.cs",
+              "RelativeDocumentMoniker": "tests\\Services\\Identity\\Conflux.Identity.IntegrationTests\\Infrastructure\\IdentityTestCollection.cs",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\tests\\Services\\Identity\\Conflux.Identity.IntegrationTests\\Infrastructure\\IdentityTestCollection.cs",
+              "RelativeToolTip": "tests\\Services\\Identity\\Conflux.Identity.IntegrationTests\\Infrastructure\\IdentityTestCollection.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0AAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-29T15:15:40.12Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 19,
+              "Title": "LoginResponse.cs",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Identity\\Conflux.Identity\\Features\\Login\\LoginResponse.cs",
+              "RelativeDocumentMoniker": "src\\Services\\Identity\\Conflux.Identity\\Features\\Login\\LoginResponse.cs",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Identity\\Conflux.Identity\\Features\\Login\\LoginResponse.cs",
+              "RelativeToolTip": "src\\Services\\Identity\\Conflux.Identity\\Features\\Login\\LoginResponse.cs",
+              "ViewState": "AgIAAAQAAAAAAAAAAAAIwB4AAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-29T14:57:08.009Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 16,
+              "Title": "GetCurrentUserResponse.cs",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Identity\\Conflux.Identity\\Features\\GetCurrentUser\\GetCurrentUserResponse.cs",
+              "RelativeDocumentMoniker": "src\\Services\\Identity\\Conflux.Identity\\Features\\GetCurrentUser\\GetCurrentUserResponse.cs",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Identity\\Conflux.Identity\\Features\\GetCurrentUser\\GetCurrentUserResponse.cs",
+              "RelativeToolTip": "src\\Services\\Identity\\Conflux.Identity\\Features\\GetCurrentUser\\GetCurrentUserResponse.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA8AAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-29T15:03:47.711Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 20,
+              "Title": "LoginRequest.cs",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Identity\\Conflux.Identity\\Features\\Login\\LoginRequest.cs",
+              "RelativeDocumentMoniker": "src\\Services\\Identity\\Conflux.Identity\\Features\\Login\\LoginRequest.cs",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Identity\\Conflux.Identity\\Features\\Login\\LoginRequest.cs",
+              "RelativeToolTip": "src\\Services\\Identity\\Conflux.Identity\\Features\\Login\\LoginRequest.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA8AAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-29T14:56:52.258Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 21,
+              "Title": "appsettings.Development.json",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Identity\\Conflux.Identity\\appsettings.Development.json",
+              "RelativeDocumentMoniker": "src\\Services\\Identity\\Conflux.Identity\\appsettings.Development.json",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Identity\\Conflux.Identity\\appsettings.Development.json",
+              "RelativeToolTip": "src\\Services\\Identity\\Conflux.Identity\\appsettings.Development.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-09-29T14:56:29.213Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 17,
+              "Title": "AuthenticationServiceCollectionExtensions.cs",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Identity\\Conflux.Identity\\Configuration\\Authentication\\AuthenticationServiceCollectionExtensions.cs",
+              "RelativeDocumentMoniker": "src\\Services\\Identity\\Conflux.Identity\\Configuration\\Authentication\\AuthenticationServiceCollectionExtensions.cs",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Identity\\Conflux.Identity\\Configuration\\Authentication\\AuthenticationServiceCollectionExtensions.cs",
+              "RelativeToolTip": "src\\Services\\Identity\\Conflux.Identity\\Configuration\\Authentication\\AuthenticationServiceCollectionExtensions.cs",
+              "ViewState": "AgIAAC8AAAAAAAAAAAAIwEgAAAAYAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-29T14:55:59.673Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 14,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Identity\\Conflux.Identity\\Program.cs",
+              "RelativeDocumentMoniker": "src\\Services\\Identity\\Conflux.Identity\\Program.cs",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Identity\\Conflux.Identity\\Program.cs",
+              "RelativeToolTip": "src\\Services\\Identity\\Conflux.Identity\\Program.cs",
+              "ViewState": "AgIAAAsAAAAAAAAAAAAswCYAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-29T14:45:14.605Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 15,
+              "Title": "GetCurrentUserEndpoint.cs",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Identity\\Conflux.Identity\\Features\\GetCurrentUser\\GetCurrentUserEndpoint.cs",
+              "RelativeDocumentMoniker": "src\\Services\\Identity\\Conflux.Identity\\Features\\GetCurrentUser\\GetCurrentUserEndpoint.cs",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Identity\\Conflux.Identity\\Features\\GetCurrentUser\\GetCurrentUserEndpoint.cs",
+              "RelativeToolTip": "src\\Services\\Identity\\Conflux.Identity\\Features\\GetCurrentUser\\GetCurrentUserEndpoint.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACwAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-29T15:08:41.123Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 18,
+              "Title": "LoginEndpoint.cs",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Identity\\Conflux.Identity\\Features\\Login\\LoginEndpoint.cs",
+              "RelativeDocumentMoniker": "src\\Services\\Identity\\Conflux.Identity\\Features\\Login\\LoginEndpoint.cs",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Identity\\Conflux.Identity\\Features\\Login\\LoginEndpoint.cs",
+              "RelativeToolTip": "src\\Services\\Identity\\Conflux.Identity\\Features\\Login\\LoginEndpoint.cs",
+              "ViewState": "AgIAABMAAAAAAAAAAAA1wEwAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-29T14:57:20.67Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 22,
+              "Title": "JwtAccessTokenService.cs",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Identity\\Conflux.Identity\\Configuration\\Authentication\\JwtAccessTokenService.cs",
+              "RelativeDocumentMoniker": "src\\Services\\Identity\\Conflux.Identity\\Configuration\\Authentication\\JwtAccessTokenService.cs",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Identity\\Conflux.Identity\\Configuration\\Authentication\\JwtAccessTokenService.cs",
+              "RelativeToolTip": "src\\Services\\Identity\\Conflux.Identity\\Configuration\\Authentication\\JwtAccessTokenService.cs",
+              "ViewState": "AgIAABsAAAAAAAAAAAAIwDUAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-29T14:55:42.203Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 23,
+              "Title": "IAccessTokenService.cs",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Identity\\Conflux.Identity\\Configuration\\Authentication\\IAccessTokenService.cs",
+              "RelativeDocumentMoniker": "src\\Services\\Identity\\Conflux.Identity\\Configuration\\Authentication\\IAccessTokenService.cs",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Identity\\Conflux.Identity\\Configuration\\Authentication\\IAccessTokenService.cs",
+              "RelativeToolTip": "src\\Services\\Identity\\Conflux.Identity\\Configuration\\Authentication\\IAccessTokenService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABIAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-29T14:55:29.666Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 24,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Identity\\Conflux.Identity\\appsettings.json",
+              "RelativeDocumentMoniker": "src\\Services\\Identity\\Conflux.Identity\\appsettings.json",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Identity\\Conflux.Identity\\appsettings.json",
+              "RelativeToolTip": "src\\Services\\Identity\\Conflux.Identity\\appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAAwAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-09-29T14:55:11.049Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 25,
+              "Title": "Conflux.Identity.csproj",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj",
+              "RelativeDocumentMoniker": "src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj",
+              "RelativeToolTip": "src\\Services\\Identity\\Conflux.Identity\\Conflux.Identity.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABUAAABOAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-09-29T14:46:01.287Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 26,
+              "Title": "RegisterEndpoint.cs",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Identity\\Conflux.Identity\\Features\\Register\\RegisterEndpoint.cs",
+              "RelativeDocumentMoniker": "src\\Services\\Identity\\Conflux.Identity\\Features\\Register\\RegisterEndpoint.cs",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Identity\\Conflux.Identity\\Features\\Register\\RegisterEndpoint.cs",
+              "RelativeToolTip": "src\\Services\\Identity\\Conflux.Identity\\Features\\Register\\RegisterEndpoint.cs",
+              "ViewState": "AgIAAFUAAAAAAAAAAAAuwF4AAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-29T14:44:44.623Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 28,
+              "Title": "RegisterResponse.cs",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Identity\\Conflux.Identity\\Features\\Register\\RegisterResponse.cs",
+              "RelativeDocumentMoniker": "src\\Services\\Identity\\Conflux.Identity\\Features\\Register\\RegisterResponse.cs",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Identity\\Conflux.Identity\\Features\\Register\\RegisterResponse.cs",
+              "RelativeToolTip": "src\\Services\\Identity\\Conflux.Identity\\Features\\Register\\RegisterResponse.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA8AAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-29T14:44:31.179Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 29,
+              "Title": "RegisterRequest.cs",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Identity\\Conflux.Identity\\Features\\Register\\RegisterRequest.cs",
+              "RelativeDocumentMoniker": "src\\Services\\Identity\\Conflux.Identity\\Features\\Register\\RegisterRequest.cs",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Identity\\Conflux.Identity\\Features\\Register\\RegisterRequest.cs",
+              "RelativeToolTip": "src\\Services\\Identity\\Conflux.Identity\\Features\\Register\\RegisterRequest.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA8AAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-29T14:43:56.359Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 27,
+              "Title": "User.cs",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Identity\\Conflux.Identity\\Domain\\User.cs",
+              "RelativeDocumentMoniker": "src\\Services\\Identity\\Conflux.Identity\\Domain\\User.cs",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Services\\Identity\\Conflux.Identity\\Domain\\User.cs",
+              "RelativeToolTip": "src\\Services\\Identity\\Conflux.Identity\\Domain\\User.cs",
+              "ViewState": "AgIAACsAAAAAAAAAAAAUwD4AAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-29T13:42:30.829Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 31,
+              "Title": "appsettings.Development.json",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Gateway\\Conflux.Gateway\\appsettings.Development.json",
+              "RelativeDocumentMoniker": "src\\Gateway\\Conflux.Gateway\\appsettings.Development.json",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\src\\Gateway\\Conflux.Gateway\\appsettings.Development.json",
+              "RelativeToolTip": "src\\Gateway\\Conflux.Gateway\\appsettings.Development.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-09-29T13:29:23.44Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 33,
+              "Title": "global.json",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\global.json",
+              "RelativeDocumentMoniker": "global.json",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\global.json",
+              "RelativeToolTip": "global.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-09-29T13:11:11.116Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 32,
+              "Title": "NuGet.Config",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\NuGet.Config",
+              "RelativeDocumentMoniker": "NuGet.Config",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\NuGet.Config",
+              "RelativeToolTip": "NuGet.Config",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAAQAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000601|",
+              "WhenOpened": "2026-09-29T13:27:35.881Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 30,
+              "Title": "Directory.Build.props",
+              "DocumentMoniker": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\Directory.Build.props",
+              "RelativeDocumentMoniker": "Directory.Build.props",
+              "ToolTip": "C:\\Users\\SurajNarayanDarade\\Documents\\conflux\\Directory.Build.props",
+              "RelativeToolTip": "Directory.Build.props",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA8AAAAKAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003801|",
+              "WhenOpened": "2026-09-29T13:09:59.289Z"
+            }
+          ]
+        },
+        {
+          "DockedHeight": 137,
+          "SelectedChildIndex": -1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{e1b7d1f8-9b3c-49b1-8f4f-bfc63a88835d}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{d78612c7-9962-4b83-95d9-268046dad23a}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{34e76e81-ee4a-11d0-ae2e-00a0c90fffc3}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:3:0:{d212f56b-c48a-434c-a121-1c5d80b59b9f}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:1:0:{d212f56b-c48a-434c-a121-1c5d80b59b9f}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:5:0:{d212f56b-c48a-434c-a121-1c5d80b59b9f}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:4:0:{d212f56b-c48a-434c-a121-1c5d80b59b9f}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
