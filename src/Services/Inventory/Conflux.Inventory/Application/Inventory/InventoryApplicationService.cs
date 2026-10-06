@@ -1,5 +1,8 @@
+using System.Text.Json;
+using Conflux.Contracts.Events;
 using Conflux.Inventory.Domain;
 using Conflux.Inventory.Infrastructure;
+using Conflux.Outbox;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
@@ -202,6 +205,43 @@ public sealed class InventoryApplicationService
         _dbContext.InventoryReservations.Add(
             reservation);
 
+        var occurredAt = DateTimeOffset.UtcNow;
+        var eventId = Guid.NewGuid();
+
+        var inventoryItem =
+            await _dbContext.InventoryItems
+                .AsNoTracking()
+                .SingleAsync(
+                    item =>
+                        item.Id ==
+                        inventoryItemId,
+                    cancellationToken);
+
+        var inventoryReservedEvent =
+            new InventoryReserved
+            {
+                EventId = eventId,
+                OccurredAt = occurredAt,
+                CorrelationId = reservationId,
+                CausationId = null,
+                ReservationId = reservationId,
+                Sku = inventoryItem.Sku,
+                Quantity = quantity
+            };
+
+        var outboxMessage =
+            new OutboxMessage(
+                eventId,
+                occurredAt,
+                "inventory.reserved.v1",
+                JsonSerializer.Serialize(
+                    inventoryReservedEvent),
+                reservationId,
+                null);
+
+        _dbContext.OutboxMessages.Add(
+            outboxMessage);
+
         try
         {
             await _dbContext.SaveChangesAsync(
@@ -248,15 +288,6 @@ public sealed class InventoryApplicationService
                 concurrentReservation,
                 cancellationToken);
         }
-
-        var inventoryItem =
-            await _dbContext.InventoryItems
-                .AsNoTracking()
-                .SingleAsync(
-                    item =>
-                        item.Id ==
-                        inventoryItemId,
-                    cancellationToken);
 
         return ReserveInventoryResult.Success(
             inventoryItem.Id,

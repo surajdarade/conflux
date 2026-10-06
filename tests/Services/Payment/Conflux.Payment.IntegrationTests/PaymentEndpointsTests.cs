@@ -8,6 +8,11 @@ using Conflux.Payment.Features.Payments.GetPayment;
 using System.Net;
 using System.Net.Http.Json;
 using Xunit;
+using System.Text.Json;
+using Conflux.Contracts.Events;
+using Conflux.Payment.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
 
 namespace Conflux.Payment.IntegrationTests;
 
@@ -971,6 +976,175 @@ public sealed class PaymentEndpointsTests :
         response.StatusCode
             .Should()
             .Be(HttpStatusCode.NotFound);
+    }
+
+    /// <summary>
+    /// Verifies that authorizing a payment creates the payment record and
+    /// the corresponding <c>payment.authorized.v1</c> outbox message with
+    /// the expected event metadata and payment details.
+    /// </summary>
+    [Fact]
+    public async Task AuthorizePayment_CreatesPaymentAndOutboxMessage() {
+        var orderId = Guid.NewGuid();
+        var customerId = Guid.NewGuid();
+        const decimal amount = 1499.99m;
+        const string currency = "INR";
+        const string idempotencyKey =
+            "outbox-test-" +
+            nameof(AuthorizePayment_CreatesPaymentAndOutboxMessage);
+
+        var request = new AuthorizePaymentRequest
+        {
+            OrderId = orderId,
+            CustomerId = customerId,
+            Amount = amount,
+            Currency = currency
+        };
+
+        using var httpRequest =
+            new HttpRequestMessage(
+                HttpMethod.Post,
+                "/api/v1/payments/authorize")
+            {
+                Content = JsonContent.Create(request)
+            };
+
+        httpRequest.Headers.Add(
+            "Idempotency-Key",
+            idempotencyKey);
+
+        var response =
+            await _client.SendAsync(
+                httpRequest,
+                TestContext.Current.CancellationToken);
+
+        response.StatusCode
+            .Should()
+            .Be(HttpStatusCode.Created);
+
+        var responseBody =
+            await response.Content.ReadFromJsonAsync<AuthorizePaymentResponse>(
+                TestContext.Current.CancellationToken);
+
+        responseBody.Should().NotBeNull();
+
+        responseBody!.Status
+            .Should()
+            .Be(
+                Conflux.Payment.Domain.PaymentStatus.Authorized);
+
+        using var scope =
+            _factory.Services.CreateScope();
+
+        var dbContext =
+            scope.ServiceProvider.GetRequiredService<PaymentDbContext>();
+
+        var payment =
+            await dbContext.Payments
+                .AsNoTracking()
+                .SingleAsync(
+                    payment =>
+                        payment.Id ==
+                        responseBody.PaymentId,
+                    TestContext.Current.CancellationToken);
+
+        var outboxMessage =
+            await dbContext.OutboxMessages
+                .AsNoTracking()
+                .SingleAsync(
+                    message =>
+                        message.CorrelationId == orderId &&
+                        message.EventType == "payment.authorized.v1",
+                    TestContext.Current.CancellationToken);
+
+        payment.OrderId
+            .Should()
+            .Be(orderId);
+
+        payment.CustomerId
+            .Should()
+            .Be(customerId);
+
+        payment.Amount
+            .Should()
+            .Be(amount);
+
+        payment.Currency
+            .Should()
+            .Be(currency);
+
+        payment.Status
+            .Should()
+            .Be(
+                Conflux.Payment.Domain.PaymentStatus.Authorized);
+
+        outboxMessage.EventType
+            .Should()
+            .Be("payment.authorized.v1");
+
+        outboxMessage.CorrelationId
+            .Should()
+            .Be(orderId);
+
+        outboxMessage.CausationId
+            .Should()
+            .BeNull();
+
+        outboxMessage.PublishedAt
+            .Should()
+            .BeNull();
+
+        outboxMessage.AttemptCount
+            .Should()
+            .Be(0);
+
+        outboxMessage.Payload
+            .Should()
+            .NotBeNullOrWhiteSpace();
+
+        var paymentAuthorized =
+            JsonSerializer.Deserialize<PaymentAuthorized>(
+                outboxMessage.Payload);
+
+        paymentAuthorized.Should().NotBeNull();
+
+        paymentAuthorized!.EventId
+            .Should()
+            .Be(outboxMessage.Id);
+
+        paymentAuthorized.OccurredAt
+            .Should()
+            .BeCloseTo(
+                outboxMessage.OccurredAt,
+                TimeSpan.FromMilliseconds(1));
+
+        paymentAuthorized.CorrelationId
+            .Should()
+            .Be(orderId);
+
+        paymentAuthorized.CausationId
+            .Should()
+            .BeNull();
+
+        paymentAuthorized.PaymentId
+            .Should()
+            .Be(responseBody.PaymentId);
+
+        paymentAuthorized.OrderId
+            .Should()
+            .Be(orderId);
+
+        paymentAuthorized.CustomerId
+            .Should()
+            .Be(customerId);
+
+        paymentAuthorized.Amount
+            .Should()
+            .Be(amount);
+
+        paymentAuthorized.Currency
+            .Should()
+            .Be(currency);
     }
 
     private async Task<AuthorizePaymentResponse>

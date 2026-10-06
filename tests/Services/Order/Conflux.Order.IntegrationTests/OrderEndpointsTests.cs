@@ -350,6 +350,19 @@ public sealed class OrderEndpointsTests :
 
         var responses = await Task.WhenAll(tasks);
 
+        foreach (var response in responses) {
+            if (response.StatusCode != HttpStatusCode.Created &&
+                response.StatusCode != HttpStatusCode.OK) {
+                var body =
+                    await response.Content.ReadAsStringAsync(
+                        TestContext.Current.CancellationToken);
+
+                Assert.Fail(
+                    $"Unexpected response: {(int)response.StatusCode} " +
+                    $"{response.StatusCode}. Body: {body}");
+            }
+        }
+
         var createdCount = responses.Count(
             response =>
                 response.StatusCode ==

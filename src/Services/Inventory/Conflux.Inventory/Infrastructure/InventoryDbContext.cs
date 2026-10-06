@@ -1,4 +1,5 @@
 using Conflux.Inventory.Domain;
+using Conflux.Outbox;
 using Microsoft.EntityFrameworkCore;
 
 namespace Conflux.Inventory.Infrastructure;
@@ -6,40 +7,37 @@ namespace Conflux.Inventory.Infrastructure;
 /// <summary>
 /// Provides the Entity Framework Core database context for the Inventory service.
 /// </summary>
-public sealed class InventoryDbContext : DbContext
-{
+public sealed class InventoryDbContext : DbContext {
     /// <summary>
     /// Initializes a new instance of the <see cref="InventoryDbContext"/> class.
     /// </summary>
-    /// <param name="options">
-    /// The options used to configure the database context.
-    /// </param>
+    /// <param name="options">The database context options.</param>
     public InventoryDbContext(
         DbContextOptions<InventoryDbContext> options)
-        : base(options)
-    {
+        : base(options) {
     }
 
     /// <summary>
-    /// Gets the inventory items managed by the Inventory service.
+    /// Gets the inventory items.
     /// </summary>
-    public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
+    public DbSet<InventoryItem> InventoryItems =>
+        Set<InventoryItem>();
 
     /// <summary>
-    /// Gets the durable reservations managed by the Inventory service.
+    /// Gets the inventory reservations.
     /// </summary>
     public DbSet<InventoryReservation> InventoryReservations =>
         Set<InventoryReservation>();
 
     /// <summary>
-    /// Configures the database model for the Inventory service.
+    /// Gets the durable integration events waiting to be published.
     /// </summary>
-    /// <param name="modelBuilder">
-    /// The model builder used to configure entity mappings.
-    /// </param>
+    public DbSet<OutboxMessage> OutboxMessages =>
+        Set<OutboxMessage>();
+
+    /// <inheritdoc />
     protected override void OnModelCreating(
-        ModelBuilder modelBuilder)
-    {
+        ModelBuilder modelBuilder) {
         modelBuilder.Entity<InventoryItem>(entity =>
         {
             entity.ToTable("inventory_items");
@@ -47,7 +45,7 @@ public sealed class InventoryDbContext : DbContext
             entity.HasKey(item => item.Id);
 
             entity.Property(item => item.Sku)
-                .HasMaxLength(64)
+                .HasMaxLength(256)
                 .IsRequired();
 
             entity.HasIndex(item => item.Sku)
@@ -88,13 +86,9 @@ public sealed class InventoryDbContext : DbContext
 
             entity.Property(reservation => reservation.CreatedAt)
                 .IsRequired();
-
-            entity.Property(reservation => reservation.ReleasedAt);
-
-            entity.HasOne<InventoryItem>()
-                .WithMany()
-                .HasForeignKey(reservation => reservation.InventoryItemId)
-                .OnDelete(DeleteBehavior.Restrict);
         });
+
+        modelBuilder.ApplyConfiguration(
+            new OutboxMessageConfiguration());
     }
 }

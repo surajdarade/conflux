@@ -27,7 +27,11 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\..\..\BuildingBlocks\Conflux.Contracts\Conflux.Contracts.csproj" />
+		<ProjectReference
+		  Include="..\..\..\BuildingBlocks\Conflux.Contracts\Conflux.Contracts.csproj" />
+
+		<ProjectReference
+		  Include="..\..\..\BuildingBlocks\Conflux.Outbox\Conflux.Outbox.csproj" />
 	</ItemGroup>
 
 </Project>

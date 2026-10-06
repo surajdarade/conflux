@@ -11,6 +11,7 @@
   <Folder Name="/src/" />
   <Folder Name="/src/BuildingBlocks/">
     <Project Path="src/BuildingBlocks/Conflux.Contracts/Conflux.Contracts.csproj" />
+    <Project Path="src/BuildingBlocks/Conflux.Outbox/Conflux.Outbox.csproj" />
   </Folder>
   <Folder Name="/src/Gateway/">
     <Project Path="src/Gateway/Conflux.Gateway/Conflux.Gateway.csproj" />
@@ -31,6 +32,13 @@
   <Folder Name="/src/Services/Payment/">
     <Project Path="src/Services/Payment/Conflux.Payment/Conflux.Payment.csproj" />
   </Folder>
+  <Folder Name="/src/Workers/" />
+  <Folder Name="/src/Workers/InventoryOutbox/">
+    <Project Path="src/Workers/InventoryOutbox/Conflux.Inventory.OutboxPublisher/Conflux.Inventory.OutboxPublisher.csproj" />
+  </Folder>
+  <Folder Name="/src/Workers/PaymentOutbox/">
+    <Project Path="src/Workers/PaymentOutbox/Conflux.Payment.OutboxPublisher/Conflux.Payment.OutboxPublisher.csproj" />
+  </Folder>
   <Folder Name="/tests/" />
   <Folder Name="/tests/Contract/" />
   <Folder Name="/tests/EndToEnd/" />
@@ -43,6 +51,7 @@
   </Folder>
   <Folder Name="/tests/Services/Inventory/">
     <Project Path="tests/Services/Inventory/Conflux.Inventory.IntegrationTests/Conflux.Inventory.IntegrationTests.csproj" />
+    <Project Path="tests/Services/Inventory/Conflux.Inventory.TransactionalOutbox.IntegrationTests/Conflux.Inventory.TransactionalOutbox.IntegrationTests.csproj" />
   </Folder>
   <Folder Name="/tests/Services/Order/">
     <Project Path="tests/Services/Order/Conflux.Order.IntegrationTests/Conflux.Order.IntegrationTests.csproj" />
@@ -51,4 +60,11 @@
     <Project Path="tests/Services/Payment/Conflux.Payment.IntegrationTests/Conflux.Payment.IntegrationTests.csproj" />
   </Folder>
   <Folder Name="/tests/Unit/" />
+  <Folder Name="/tests/Workers/" />
+  <Folder Name="/tests/Workers/InventoryOutbox/">
+    <Project Path="tests/Workers/InventoryOutbox/Conflux.Inventory.OutboxPublisher.IntegrationTests/Conflux.Inventory.OutboxPublisher.IntegrationTests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Workers/PaymentOutbox/">
+    <Project Path="tests/Workers/PaymentOutbox/Conflux.Payment.OutboxPublisher.IntegrationTests/Conflux.Payment.OutboxPublisher.IntegrationTests.csproj" />
+  </Folder>
 </Solution>

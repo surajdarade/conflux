@@ -1,3 +1,6 @@
+using System.Text.Json;
+using Conflux.Contracts.Events;
+using Conflux.Outbox;
 using Conflux.Payment.Domain;
 using Conflux.Payment.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +15,9 @@ namespace Conflux.Payment.Application.Payments;
 /// </summary>
 public sealed class PaymentApplicationService
 {
+    private const string PaymentAuthorizedEventType =
+        "payment.authorized.v1";
+
     private readonly PaymentDbContext _dbContext;
 
     /// <summary>
@@ -139,16 +145,53 @@ public sealed class PaymentApplicationService
 
         payment.Authorize();
 
+        var occurredAt = DateTimeOffset.UtcNow;
+
+        var integrationEvent =
+            new PaymentAuthorized
+            {
+                EventId = Guid.NewGuid(),
+                OccurredAt = occurredAt,
+                CorrelationId = orderId,
+                CausationId = null,
+                PaymentId = payment.Id,
+                OrderId = payment.OrderId,
+                CustomerId = payment.CustomerId,
+                Amount = payment.Amount,
+                Currency = payment.Currency
+            };
+
+        var outboxMessage =
+            new OutboxMessage(
+                integrationEvent.EventId,
+                occurredAt,
+                PaymentAuthorizedEventType,
+                JsonSerializer.Serialize(
+                    integrationEvent),
+                integrationEvent.CorrelationId,
+                integrationEvent.CausationId);
+
+        await using var transaction =
+            await _dbContext.Database.BeginTransactionAsync(
+                cancellationToken);
+
         _dbContext.Payments.Add(payment);
+        _dbContext.OutboxMessages.Add(outboxMessage);
 
         try
         {
             await _dbContext.SaveChangesAsync(
                 cancellationToken);
+
+            await transaction.CommitAsync(
+                cancellationToken);
         }
         catch (DbUpdateException exception)
             when (IsUniqueViolation(exception))
         {
+            await transaction.RollbackAsync(
+                cancellationToken);
+
             var concurrentPayment =
                 await _dbContext.Payments
                     .AsNoTracking()
@@ -347,9 +390,9 @@ public sealed class PaymentApplicationService
         DbUpdateException exception)
     {
         return exception.InnerException is PostgresException
-        {
-            SqlState: PostgresErrorCodes.UniqueViolation
-        };
+            {
+                SqlState: PostgresErrorCodes.UniqueViolation
+            };
     }
 }
 
