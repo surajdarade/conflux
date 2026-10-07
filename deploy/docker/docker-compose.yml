@@ -5,7 +5,6 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: conflux
-    ports: ["5432:5432"]
     volumes:
       - conflux-postgres:/var/lib/postgresql/data
       - ../../infra/postgres/init:/docker-entrypoint-initdb.d:ro
@@ -77,6 +76,8 @@ services:
       args:
         PROJECT: src/Services/Inventory/Conflux.Inventory/Conflux.Inventory.csproj
         APP_DLL: Conflux.Inventory.dll
+    ports:
+      - "8080:8080"
     environment:
       ConnectionStrings__InventoryDatabase: Host=postgres;Port=5432;Database=conflux_inventory;Username=postgres;Password=postgres
       Database__ApplyMigrations: "true"

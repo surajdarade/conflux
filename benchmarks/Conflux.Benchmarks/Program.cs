@@ -5,56 +5,91 @@ using Conflux.Inventory.Infrastructure.Sharding;
 using StackExchange.Redis;
 using Npgsql;
 
-BenchmarkRunner.Run<ReservationContentionBenchmarks>();
-BenchmarkRunner.Run<IdempotencyLookupBenchmarks>();
-BenchmarkRunner.Run<SerializationBenchmarks>();
-BenchmarkRunner.Run<ShardRoutingBenchmarks>();
-BenchmarkRunner.Run<CacheLookupBenchmarks>();
-
 if (Environment.GetEnvironmentVariable("CONFLUX_EXTERNAL_BENCHMARKS") == "1") {
     BenchmarkRunner.Run<DatabaseVsRedisBenchmarks>();
 }
+else {
+    BenchmarkRunner.Run<ReservationContentionBenchmarks>();
+    BenchmarkRunner.Run<IdempotencyLookupBenchmarks>();
+    BenchmarkRunner.Run<SerializationBenchmarks>();
+    BenchmarkRunner.Run<ShardRoutingBenchmarks>();
+    BenchmarkRunner.Run<CacheLookupBenchmarks>();
+}
 
-/// <summary>Compares a serialized reservation baseline with an atomic compare-and-swap implementation.</summary>
+/// <summary>Compares serialized and atomic reservation under concurrent contention.</summary>
 [MemoryDiagnoser]
 [ThreadingDiagnoser]
 public class ReservationContentionBenchmarks {
     private const int InitialStock = 100_000;
+    private const int TotalOperations = 100_000;
 
     private BaselineInventory _baseline = null!;
     private OptimizedInventory _optimized = null!;
 
-    /// <summary>Gets the number of reservation attempts.</summary>
-    [Params(100, 1_000, 10_000)]
-    public int Operations { get; set; }
+    /// <summary>Gets the number of concurrent workers.</summary>
+    [Params(1, 4, 16, 64)]
+    public int Workers { get; set; }
 
-    /// <summary>Initializes benchmark state.</summary>
+    /// <summary>Initializes benchmark state for each iteration.</summary>
     [IterationSetup]
     public void Setup() {
         _baseline = new BaselineInventory(InitialStock);
         _optimized = new OptimizedInventory(InitialStock);
     }
 
-    /// <summary>Measures the serialized lock baseline.</summary>
+    /// <summary>Measures lock-based reservation under concurrent contention.</summary>
     [Benchmark(Baseline = true)]
     public int LockSerializedReservation()
-        => Reserve(_baseline.TryReserve);
+        => ReserveConcurrently(_baseline.TryReserve);
 
-    /// <summary>Measures the atomic reservation implementation.</summary>
+    /// <summary>Measures atomic reservation under concurrent contention.</summary>
     [Benchmark]
     public int AtomicReservation()
-        => Reserve(_optimized.TryReserve);
+        => ReserveConcurrently(_optimized.TryReserve);
 
-    private int Reserve(Func<bool> operation) {
-        var successful = 0;
+    private int ReserveConcurrently(Func<bool> operation) {
+        var startGate = new ManualResetEventSlim(false);
+        var tasks = new Task<int>[Workers];
 
-        for (var index = 0; index < Operations; index++) {
-            if (operation()) {
-                successful++;
-            }
+        var baseOperationsPerWorker = TotalOperations / Workers;
+        var remainder = TotalOperations % Workers;
+
+        for (var worker = 0; worker < Workers; worker++) {
+            var operations = baseOperationsPerWorker +
+                (worker < remainder ? 1 : 0);
+
+            tasks[worker] = Task.Run(() =>
+            {
+                startGate.Wait();
+
+                var successful = 0;
+
+                for (var index = 0; index < operations; index++) {
+                    if (operation()) {
+                        successful++;
+                    }
+                }
+
+                return successful;
+            });
         }
 
-        return successful;
+        startGate.Set();
+
+        try {
+            Task.WaitAll(tasks);
+        }
+        finally {
+            startGate.Dispose();
+        }
+
+        var totalSuccessful = 0;
+
+        foreach (var task in tasks) {
+            totalSuccessful += task.Result;
+        }
+
+        return totalSuccessful;
     }
 
     private sealed class BaselineInventory {
