@@ -1,4 +1,6 @@
 using Conflux.Order.Domain;
+using Conflux.Outbox;
+using Conflux.Inbox;
 using Microsoft.EntityFrameworkCore;
 using OrderEntity = Conflux.Order.Domain.Order;
 
@@ -39,6 +41,18 @@ public sealed class OrderDbContext : DbContext {
         Set<OrderInventoryReservation>();
 
     /// <summary>
+    /// Gets durable integration events waiting to be published.
+    /// </summary>
+    public DbSet<OutboxMessage> OutboxMessages =>
+        Set<OutboxMessage>();
+
+    /// <summary>
+    /// Gets durable received integration events.
+    /// </summary>
+    public DbSet<InboxMessage> InboxMessages =>
+        Set<InboxMessage>();
+
+    /// <summary>
     /// Configures the database model for the Order service.
     /// </summary>
     /// <param name="modelBuilder">
@@ -74,6 +88,10 @@ public sealed class OrderDbContext : DbContext {
             entity.Property(order => order.Currency)
                 .HasMaxLength(3)
                 .IsRequired();
+
+            entity.Property(order => order.PaymentId);
+
+            entity.HasIndex(order => order.PaymentId);
 
             entity.Property(order => order.CreatedAt)
                 .IsRequired();
@@ -159,5 +177,11 @@ public sealed class OrderDbContext : DbContext {
                 .HasForeignKey(reservation => reservation.OrderItemId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
+
+        modelBuilder.ApplyConfiguration(
+            new OutboxMessageConfiguration());
+
+        modelBuilder.ApplyConfiguration(
+            new InboxMessageConfiguration());
     }
 }

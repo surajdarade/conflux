@@ -22,6 +22,39 @@ public sealed class InventoryGrpcClient :
         _client = client;
     }
 
+    private static async Task<TResponse> ExecuteWithRetryAsync<TResponse>(
+        Func<CancellationToken, AsyncUnaryCall<TResponse>> operation,
+        CancellationToken cancellationToken)
+    {
+        const int maxAttempts = 3;
+
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            try
+            {
+                return await operation(cancellationToken);
+            }
+            catch (RpcException exception)
+                when (IsTransient(exception.StatusCode) && attempt < maxAttempts)
+            {
+                var delay = TimeSpan.FromMilliseconds(
+                    100 * Math.Pow(2, attempt - 1));
+                await Task.Delay(delay, cancellationToken);
+            }
+        }
+
+        throw new InvalidOperationException(
+            "The gRPC operation exhausted its retry budget.");
+    }
+
+    private static bool IsTransient(StatusCode statusCode)
+    {
+        return statusCode is
+            StatusCode.Unavailable or
+            StatusCode.DeadlineExceeded or
+            StatusCode.ResourceExhausted;
+    }
+
     /// <summary>
     /// Resolves an inventory item by SKU.
     /// </summary>
@@ -40,12 +73,14 @@ public sealed class InventoryGrpcClient :
         ArgumentException.ThrowIfNullOrWhiteSpace(sku);
 
         var response =
-            await _client.GetInventoryBySkuAsync(
-                new GetInventoryBySkuRequest
-                {
-                    Sku = sku.Trim()
-                },
-                cancellationToken: cancellationToken);
+            await ExecuteWithRetryAsync(
+                token => _client.GetInventoryBySkuAsync(
+                    new GetInventoryBySkuRequest
+                    {
+                        Sku = sku.Trim()
+                    },
+                    cancellationToken: token),
+                cancellationToken);
 
         if (!Guid.TryParse(
                 response.InventoryItemId,
@@ -115,17 +150,16 @@ public sealed class InventoryGrpcClient :
         }
 
         var response =
-            await _client.ReserveInventoryAsync(
-                new ReserveInventoryRequest
-                {
-                    InventoryItemId =
-                        inventoryItemId.ToString(),
-                    ReservationId =
-                        reservationId.ToString(),
-                    Quantity =
-                        quantity
-                },
-                cancellationToken: cancellationToken);
+            await ExecuteWithRetryAsync(
+                token => _client.ReserveInventoryAsync(
+                    new ReserveInventoryRequest
+                    {
+                        InventoryItemId = inventoryItemId.ToString(),
+                        ReservationId = reservationId.ToString(),
+                        Quantity = quantity
+                    },
+                    cancellationToken: token),
+                cancellationToken);
 
         if (!Guid.TryParse(
                 response.InventoryItemId,
@@ -197,15 +231,15 @@ public sealed class InventoryGrpcClient :
         }
 
         var response =
-            await _client.ReleaseInventoryAsync(
-                new ReleaseInventoryRequest
-                {
-                    InventoryItemId =
-                        inventoryItemId.ToString(),
-                    ReservationId =
-                        reservationId.ToString()
-                },
-                cancellationToken: cancellationToken);
+            await ExecuteWithRetryAsync(
+                token => _client.ReleaseInventoryAsync(
+                    new ReleaseInventoryRequest
+                    {
+                        InventoryItemId = inventoryItemId.ToString(),
+                        ReservationId = reservationId.ToString()
+                    },
+                    cancellationToken: token),
+                cancellationToken);
 
         if (!Guid.TryParse(
                 response.InventoryItemId,

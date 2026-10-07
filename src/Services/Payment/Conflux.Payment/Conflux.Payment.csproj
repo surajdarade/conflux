@@ -22,7 +22,9 @@
 		</PackageReference>
 
 		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
-	</ItemGroup>
+	
+    <ProjectReference Include="..\..\..\BuildingBlocks\Conflux.Observability\Conflux.Observability.csproj" />
+  </ItemGroup>
 
 	<ItemGroup>
 		<ProjectReference

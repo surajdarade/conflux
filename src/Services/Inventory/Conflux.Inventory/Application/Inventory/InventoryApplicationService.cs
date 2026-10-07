@@ -1,10 +1,12 @@
-using System.Text.Json;
 using Conflux.Contracts.Events;
 using Conflux.Inventory.Domain;
 using Conflux.Inventory.Infrastructure;
+using Conflux.Inventory.Infrastructure.Sharding;
+using Conflux.Observability;
 using Conflux.Outbox;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using System.Text.Json;
 
 namespace Conflux.Inventory.Application.Inventory;
 
@@ -12,21 +14,73 @@ namespace Conflux.Inventory.Application.Inventory;
 /// Provides the application-level operations for managing inventory
 /// reservations and releases.
 /// </summary>
-public sealed class InventoryApplicationService
-{
-    private readonly InventoryDbContext _dbContext;
+public sealed class InventoryApplicationService {
+    private readonly InventoryDbContextProvider _dbContextProvider;
+    private readonly ConfluxBusinessMetrics _metrics;
 
     /// <summary>
     /// Initializes a new instance of the
     /// <see cref="InventoryApplicationService"/> class.
     /// </summary>
-    /// <param name="dbContext">
-    /// The Inventory database context.
+    /// <param name="dbContextProvider">
+    /// The provider that routes operations to the correct physical inventory shard.
     /// </param>
+    /// <param name="metrics"></param>
     public InventoryApplicationService(
-        InventoryDbContext dbContext)
-    {
-        _dbContext = dbContext;
+        InventoryDbContextProvider dbContextProvider,
+        ConfluxBusinessMetrics metrics) {
+        _dbContextProvider = dbContextProvider;
+        _metrics = metrics;
+    }
+
+    /// <summary>
+    /// Creates an inventory item on the physical shard selected for its SKU.
+    /// </summary>
+    /// <param name="sku">The stock keeping unit.</param>
+    /// <param name="availableQuantity">The initial available quantity.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>The creation result.</returns>
+    public async Task<CreateInventoryResult> CreateAsync(
+        string sku,
+        int availableQuantity,
+        CancellationToken cancellationToken) {
+        if (string.IsNullOrWhiteSpace(sku)) {
+            return CreateInventoryResult.Invalid("SKU is required.");
+        }
+
+        if (availableQuantity < 0) {
+            return CreateInventoryResult.Invalid("Available quantity cannot be negative.");
+        }
+
+        var normalizedSku = sku.Trim().ToUpperInvariant();
+        await using var dbContext = _dbContextProvider.CreateForSku(normalizedSku);
+
+        var exists = await dbContext.InventoryItems
+            .AnyAsync(item => item.Sku == normalizedSku, cancellationToken);
+        if (exists) {
+            return CreateInventoryResult.Conflict("Inventory already exists for this SKU.");
+        }
+
+        var id = _dbContextProvider.IsShardingEnabled
+            ? InventoryShardKey.CreateInventoryId(normalizedSku)
+            : Guid.NewGuid();
+        var inventoryItem = new InventoryItem(id, normalizedSku, availableQuantity);
+        dbContext.InventoryItems.Add(inventoryItem);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return CreateInventoryResult.Success(
+            inventoryItem.Id,
+            inventoryItem.Sku,
+            inventoryItem.AvailableQuantity,
+            inventoryItem.ReservedQuantity);
+    }
+
+    /// <summary>
+    /// Initializes the service against an existing context for compatibility with integration tests.
+    /// </summary>
+    /// <param name="dbContext">The existing inventory context.</param>
+    public InventoryApplicationService(InventoryDbContext dbContext)
+        : this(new InventoryDbContextProvider(dbContext), new ConfluxBusinessMetrics()) {
     }
 
     /// <summary>
@@ -43,10 +97,8 @@ public sealed class InventoryApplicationService
     /// </returns>
     public async Task<GetInventoryBySkuResult> GetBySkuAsync(
         string sku,
-        CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrWhiteSpace(sku))
-        {
+        CancellationToken cancellationToken) {
+        if (string.IsNullOrWhiteSpace(sku)) {
             return GetInventoryBySkuResult.Invalid(
                 "SKU cannot be empty.");
         }
@@ -54,15 +106,17 @@ public sealed class InventoryApplicationService
         var normalizedSku =
             sku.Trim().ToUpperInvariant();
 
+        await using var dbContext =
+            _dbContextProvider.CreateForSku(normalizedSku);
+
         var inventory =
-            await _dbContext.InventoryItems
+            await dbContext.InventoryItems
                 .AsNoTracking()
                 .SingleOrDefaultAsync(
                     item => item.Sku == normalizedSku,
                     cancellationToken);
 
-        if (inventory is null)
-        {
+        if (inventory is null) {
             return GetInventoryBySkuResult.NotFound(
                 $"Inventory for SKU '{normalizedSku}' was not found.");
         }
@@ -96,28 +150,29 @@ public sealed class InventoryApplicationService
         Guid inventoryItemId,
         Guid reservationId,
         int quantity,
-        CancellationToken cancellationToken)
-    {
-        if (inventoryItemId == Guid.Empty)
-        {
+        CancellationToken cancellationToken) {
+        var reservationStarted = System.Diagnostics.Stopwatch.GetTimestamp();
+
+        if (inventoryItemId == Guid.Empty) {
             return ReserveInventoryResult.Invalid(
                 "Inventory item ID cannot be empty.");
         }
 
-        if (reservationId == Guid.Empty)
-        {
+        if (reservationId == Guid.Empty) {
             return ReserveInventoryResult.Invalid(
                 "Reservation ID cannot be empty.");
         }
 
-        if (quantity <= 0)
-        {
+        if (quantity <= 0) {
             return ReserveInventoryResult.Invalid(
                 "Reservation quantity must be greater than zero.");
         }
 
+        await using var dbContext =
+            _dbContextProvider.CreateForInventoryId(inventoryItemId);
+
         var existingReservation =
-            await _dbContext.InventoryReservations
+            await dbContext.InventoryReservations
                 .AsNoTracking()
                 .SingleOrDefaultAsync(
                     reservation =>
@@ -125,178 +180,175 @@ public sealed class InventoryApplicationService
                         reservationId,
                     cancellationToken);
 
-        if (existingReservation is not null)
-        {
+        if (existingReservation is not null) {
             if (existingReservation.InventoryItemId !=
-                inventoryItemId)
-            {
+                inventoryItemId) {
                 return ReserveInventoryResult.Conflict(
                     "The reservation ID is already associated with a different inventory item.");
             }
 
-            if (existingReservation.Quantity != quantity)
-            {
+            if (existingReservation.Quantity != quantity) {
                 return ReserveInventoryResult.Conflict(
                     "The reservation ID is already associated with a different reservation quantity.");
             }
 
             return await BuildExistingReservationResultAsync(
+                dbContext,
                 existingReservation,
                 cancellationToken);
         }
 
-        await using var transaction =
-            await _dbContext.Database.BeginTransactionAsync(
-                cancellationToken);
+        var executionStrategy =
+            dbContext.Database.CreateExecutionStrategy();
 
-        var updatedRows =
-            await _dbContext.InventoryItems
-                .Where(
-                    item =>
-                        item.Id == inventoryItemId &&
-                        item.AvailableQuantity >= quantity)
-                .ExecuteUpdateAsync(
-                    setters =>
-                        setters
-                            .SetProperty(
-                                item => item.AvailableQuantity,
-                                item =>
-                                    item.AvailableQuantity -
-                                    quantity)
-                            .SetProperty(
-                                item => item.ReservedQuantity,
-                                item =>
-                                    item.ReservedQuantity +
-                                    quantity)
-                            .SetProperty(
-                                item => item.UpdatedAt,
-                                _ => DateTimeOffset.UtcNow),
-                    cancellationToken);
+        var result = await executionStrategy.ExecuteAsync(
+            async () =>
+            {
+                // A retry can reuse the same DbContext after a transient failure.
+                // Clear state from the previous attempt before starting a new
+                // transactional unit of work.
+                dbContext.ChangeTracker.Clear();
 
-        if (updatedRows == 0)
-        {
-            var inventoryExists =
-                await _dbContext.InventoryItems
-                    .AnyAsync(
-                        item =>
-                            item.Id ==
-                            inventoryItemId,
+                await using var transaction =
+                    await dbContext.Database.BeginTransactionAsync(
                         cancellationToken);
 
-            await transaction.RollbackAsync(
-                cancellationToken);
+                var updatedRows =
+                    await dbContext.InventoryItems
+                        .Where(
+                            item =>
+                                item.Id == inventoryItemId &&
+                                item.AvailableQuantity >= quantity)
+                        .ExecuteUpdateAsync(
+                            setters =>
+                                setters
+                                    .SetProperty(
+                                        item => item.AvailableQuantity,
+                                        item =>
+                                            item.AvailableQuantity - quantity)
+                                    .SetProperty(
+                                        item => item.ReservedQuantity,
+                                        item =>
+                                            item.ReservedQuantity + quantity)
+                                    .SetProperty(
+                                        item => item.UpdatedAt,
+                                        _ => DateTimeOffset.UtcNow),
+                            cancellationToken);
 
-            if (!inventoryExists)
-            {
-                return ReserveInventoryResult.NotFound(
-                    "Inventory item was not found.");
-            }
+                if (updatedRows == 0) {
+                    var inventoryExists =
+                        await dbContext.InventoryItems
+                            .AnyAsync(
+                                item => item.Id == inventoryItemId,
+                                cancellationToken);
 
-            return ReserveInventoryResult.InsufficientInventory(
-                "Insufficient inventory.");
-        }
+                    await transaction.RollbackAsync(cancellationToken);
 
-        var reservation = new InventoryReservation(
-            Guid.NewGuid(),
-            reservationId,
-            inventoryItemId,
-            quantity);
+                    if (!inventoryExists) {
+                        return ReserveInventoryResult.NotFound(
+                            "Inventory item was not found.");
+                    }
 
-        _dbContext.InventoryReservations.Add(
-            reservation);
+                    return ReserveInventoryResult.InsufficientInventory(
+                        "Insufficient inventory.");
+                }
 
-        var occurredAt = DateTimeOffset.UtcNow;
-        var eventId = Guid.NewGuid();
+                var reservation = new InventoryReservation(
+                    Guid.NewGuid(),
+                    reservationId,
+                    inventoryItemId,
+                    quantity);
 
-        var inventoryItem =
-            await _dbContext.InventoryItems
-                .AsNoTracking()
-                .SingleAsync(
-                    item =>
-                        item.Id ==
-                        inventoryItemId,
-                    cancellationToken);
+                dbContext.InventoryReservations.Add(reservation);
 
-        var inventoryReservedEvent =
-            new InventoryReserved
-            {
-                EventId = eventId,
-                OccurredAt = occurredAt,
-                CorrelationId = reservationId,
-                CausationId = null,
-                ReservationId = reservationId,
-                Sku = inventoryItem.Sku,
-                Quantity = quantity
-            };
+                var occurredAt = DateTimeOffset.UtcNow;
+                var eventId = Guid.NewGuid();
 
-        var outboxMessage =
-            new OutboxMessage(
-                eventId,
-                occurredAt,
-                "inventory.reserved.v1",
-                JsonSerializer.Serialize(
-                    inventoryReservedEvent),
-                reservationId,
-                null);
+                var inventoryItem =
+                    await dbContext.InventoryItems
+                        .AsNoTracking()
+                        .SingleAsync(
+                            item => item.Id == inventoryItemId,
+                            cancellationToken);
 
-        _dbContext.OutboxMessages.Add(
-            outboxMessage);
+                var inventoryReservedEvent = new InventoryReserved
+                {
+                    EventId = eventId,
+                    OccurredAt = occurredAt,
+                    CorrelationId = reservationId,
+                    CausationId = null,
+                    ReservationId = reservationId,
+                    Sku = inventoryItem.Sku,
+                    Quantity = quantity
+                };
 
-        try
-        {
-            await _dbContext.SaveChangesAsync(
-                cancellationToken);
+                var outboxMessage = new OutboxMessage(
+                    eventId,
+                    occurredAt,
+                    "inventory.reserved.v1",
+                    JsonSerializer.Serialize(inventoryReservedEvent),
+                    reservationId,
+                    null);
 
-            await transaction.CommitAsync(
-                cancellationToken);
-        }
-        catch (DbUpdateException exception)
-            when (IsUniqueConstraintViolation(exception))
-        {
-            await transaction.RollbackAsync(
-                cancellationToken);
+                dbContext.OutboxMessages.Add(outboxMessage);
 
-            var concurrentReservation =
-                await _dbContext.InventoryReservations
-                    .AsNoTracking()
-                    .SingleOrDefaultAsync(
-                        existing =>
-                            existing.ReservationId ==
-                            reservationId,
+                try {
+                    await dbContext.SaveChangesAsync(cancellationToken);
+                    await transaction.CommitAsync(cancellationToken);
+                }
+                catch (DbUpdateException exception)
+                    when (IsUniqueConstraintViolation(exception)) {
+                    await transaction.RollbackAsync(cancellationToken);
+                    dbContext.ChangeTracker.Clear();
+
+                    var concurrentReservation =
+                        await dbContext.InventoryReservations
+                            .AsNoTracking()
+                            .SingleOrDefaultAsync(
+                                existing =>
+                                    existing.ReservationId == reservationId,
+                                cancellationToken);
+
+                    if (concurrentReservation is null) {
+                        throw;
+                    }
+
+                    if (concurrentReservation.InventoryItemId !=
+                        inventoryItemId) {
+                        return ReserveInventoryResult.Conflict(
+                            "The reservation ID is already associated with a different inventory item.");
+                    }
+
+                    if (concurrentReservation.Quantity != quantity) {
+                        return ReserveInventoryResult.Conflict(
+                            "The reservation ID is already associated with a different reservation quantity.");
+                    }
+
+                    return await BuildExistingReservationResultAsync(
+                        dbContext,
+                        concurrentReservation,
                         cancellationToken);
+                }
 
-            if (concurrentReservation is null)
-            {
-                throw;
-            }
+                return ReserveInventoryResult.Success(
+                    inventoryItem.Id,
+                    reservation.ReservationId,
+                    inventoryItem.Sku,
+                    reservation.Quantity,
+                    inventoryItem.AvailableQuantity,
+                    inventoryItem.ReservedQuantity,
+                    false);
+            });
 
-            if (concurrentReservation.InventoryItemId !=
-                inventoryItemId)
-            {
-                return ReserveInventoryResult.Conflict(
-                    "The reservation ID is already associated with a different inventory item.");
-            }
-
-            if (concurrentReservation.Quantity !=
-                quantity)
-            {
-                return ReserveInventoryResult.Conflict(
-                    "The reservation ID is already associated with a different reservation quantity.");
-            }
-
-            return await BuildExistingReservationResultAsync(
-                concurrentReservation,
-                cancellationToken);
+        if (result.Status == ReserveInventoryResultStatus.Success &&
+            !result.AlreadyReserved) {
+            _metrics.InventoryReserved();
+            _metrics.ReservationDuration(
+                System.Diagnostics.Stopwatch.GetElapsedTime(
+                    reservationStarted));
         }
 
-        return ReserveInventoryResult.Success(
-            inventoryItem.Id,
-            reservation.ReservationId,
-            inventoryItem.Sku,
-            reservation.Quantity,
-            inventoryItem.AvailableQuantity,
-            inventoryItem.ReservedQuantity,
-            false);
+        return result;
     }
 
     /// <summary>
@@ -317,59 +369,51 @@ public sealed class InventoryApplicationService
     public async Task<ReleaseInventoryResult> ReleaseAsync(
         Guid inventoryItemId,
         Guid reservationId,
-        CancellationToken cancellationToken)
-    {
-        if (inventoryItemId == Guid.Empty)
-        {
+        CancellationToken cancellationToken) {
+        if (inventoryItemId == Guid.Empty) {
             return ReleaseInventoryResult.Invalid(
                 "Inventory item ID cannot be empty.");
         }
 
-        if (reservationId == Guid.Empty)
-        {
+        if (reservationId == Guid.Empty) {
             return ReleaseInventoryResult.Invalid(
                 "Reservation ID cannot be empty.");
         }
 
+        await using var dbContext =
+            _dbContextProvider.CreateForInventoryId(inventoryItemId);
+
         var reservation =
-            await _dbContext.InventoryReservations
+            await dbContext.InventoryReservations
                 .AsNoTracking()
                 .SingleOrDefaultAsync(
                     candidate =>
-                        candidate.ReservationId ==
-                        reservationId,
+                        candidate.ReservationId == reservationId,
                     cancellationToken);
 
-        if (reservation is null)
-        {
+        if (reservation is null) {
             return ReleaseInventoryResult.NotFound(
                 "Reservation was not found.");
         }
 
-        if (reservation.InventoryItemId !=
-            inventoryItemId)
-        {
+        if (reservation.InventoryItemId != inventoryItemId) {
             return ReleaseInventoryResult.Conflict(
                 "The reservation does not belong to this inventory item.");
         }
 
         var inventoryItem =
-            await _dbContext.InventoryItems
+            await dbContext.InventoryItems
                 .AsNoTracking()
                 .SingleOrDefaultAsync(
-                    item =>
-                        item.Id ==
-                        inventoryItemId,
+                    item => item.Id == inventoryItemId,
                     cancellationToken);
 
-        if (inventoryItem is null)
-        {
+        if (inventoryItem is null) {
             return ReleaseInventoryResult.NotFound(
                 "Inventory item was not found.");
         }
 
-        if (reservation.IsReleased)
-        {
+        if (reservation.IsReleased) {
             return ReleaseInventoryResult.Success(
                 inventoryItem.Id,
                 reservation.ReservationId,
@@ -380,140 +424,154 @@ public sealed class InventoryApplicationService
                 true);
         }
 
-        await using var transaction =
-            await _dbContext.Database.BeginTransactionAsync(
-                cancellationToken);
+        var executionStrategy =
+            dbContext.Database.CreateExecutionStrategy();
 
-        var releasedRows =
-            await _dbContext.InventoryReservations
-                .Where(
-                    candidate =>
-                        candidate.ReservationId ==
-                        reservationId &&
-                        candidate.InventoryItemId ==
-                        inventoryItemId &&
-                        candidate.ReleasedAt == null)
-                .ExecuteUpdateAsync(
-                    setters =>
-                        setters.SetProperty(
+        return await executionStrategy.ExecuteAsync(
+            async () =>
+            {
+                // A retry can reuse the same DbContext after a transient failure.
+                // Clear state from the previous attempt before starting a new
+                // transactional unit of work.
+                dbContext.ChangeTracker.Clear();
+
+                await using var transaction =
+                    await dbContext.Database.BeginTransactionAsync(
+                        cancellationToken);
+
+                var releasedRows =
+                    await dbContext.InventoryReservations
+                        .Where(
                             candidate =>
-                                candidate.ReleasedAt,
-                            _ => DateTimeOffset.UtcNow),
-                    cancellationToken);
+                                candidate.ReservationId == reservationId &&
+                                candidate.InventoryItemId == inventoryItemId &&
+                                candidate.ReleasedAt == null)
+                        .ExecuteUpdateAsync(
+                            setters =>
+                                setters.SetProperty(
+                                    candidate => candidate.ReleasedAt,
+                                    _ => DateTimeOffset.UtcNow),
+                            cancellationToken);
 
-        if (releasedRows == 0)
-        {
-            await transaction.RollbackAsync(
-                cancellationToken);
+                if (releasedRows == 0) {
+                    await transaction.RollbackAsync(cancellationToken);
+                    dbContext.ChangeTracker.Clear();
 
-            var currentReservation =
-                await _dbContext.InventoryReservations
-                    .AsNoTracking()
-                    .SingleOrDefaultAsync(
-                        candidate =>
-                            candidate.ReservationId ==
-                            reservationId,
-                        cancellationToken);
+                    var currentReservation =
+                        await dbContext.InventoryReservations
+                            .AsNoTracking()
+                            .SingleOrDefaultAsync(
+                                candidate =>
+                                    candidate.ReservationId == reservationId,
+                                cancellationToken);
 
-            if (currentReservation is null)
-            {
-                return ReleaseInventoryResult.NotFound(
-                    "Reservation was not found.");
-            }
+                    if (currentReservation is null) {
+                        return ReleaseInventoryResult.NotFound(
+                            "Reservation was not found.");
+                    }
 
-            if (currentReservation.InventoryItemId !=
-                inventoryItemId)
-            {
-                return ReleaseInventoryResult.Conflict(
-                    "The reservation does not belong to this inventory item.");
-            }
+                    if (currentReservation.InventoryItemId !=
+                        inventoryItemId) {
+                        return ReleaseInventoryResult.Conflict(
+                            "The reservation does not belong to this inventory item.");
+                    }
 
-            var currentInventory =
-                await _dbContext.InventoryItems
-                    .AsNoTracking()
-                    .SingleAsync(
-                        item =>
-                            item.Id ==
-                            inventoryItemId,
-                        cancellationToken);
+                    var currentInventory =
+                        await dbContext.InventoryItems
+                            .AsNoTracking()
+                            .SingleAsync(
+                                item => item.Id == inventoryItemId,
+                                cancellationToken);
 
-            return ReleaseInventoryResult.Success(
-                currentInventory.Id,
-                currentReservation.ReservationId,
-                currentInventory.Sku,
-                currentReservation.Quantity,
-                currentInventory.AvailableQuantity,
-                currentInventory.ReservedQuantity,
-                true);
-        }
+                    return ReleaseInventoryResult.Success(
+                        currentInventory.Id,
+                        currentReservation.ReservationId,
+                        currentInventory.Sku,
+                        currentReservation.Quantity,
+                        currentInventory.AvailableQuantity,
+                        currentInventory.ReservedQuantity,
+                        true);
+                }
 
-        var updatedInventoryRows =
-            await _dbContext.InventoryItems
-                .Where(
-                    item =>
-                        item.Id ==
-                        inventoryItemId &&
-                        item.ReservedQuantity >=
-                        reservation.Quantity)
-                .ExecuteUpdateAsync(
-                    setters =>
-                        setters
-                            .SetProperty(
-                                item =>
-                                    item.AvailableQuantity,
-                                item =>
-                                    item.AvailableQuantity +
-                                    reservation.Quantity)
-                            .SetProperty(
-                                item =>
-                                    item.ReservedQuantity,
-                                item =>
-                                    item.ReservedQuantity -
-                                    reservation.Quantity)
-                            .SetProperty(
-                                item =>
-                                    item.UpdatedAt,
-                                _ => DateTimeOffset.UtcNow),
-                    cancellationToken);
+                var updatedInventoryRows =
+                    await dbContext.InventoryItems
+                        .Where(
+                            item =>
+                                item.Id == inventoryItemId &&
+                                item.ReservedQuantity >= reservation.Quantity)
+                        .ExecuteUpdateAsync(
+                            setters =>
+                                setters
+                                    .SetProperty(
+                                        item => item.AvailableQuantity,
+                                        item =>
+                                            item.AvailableQuantity + reservation.Quantity)
+                                    .SetProperty(
+                                        item => item.ReservedQuantity,
+                                        item =>
+                                            item.ReservedQuantity - reservation.Quantity)
+                                    .SetProperty(
+                                        item => item.UpdatedAt,
+                                        _ => DateTimeOffset.UtcNow),
+                            cancellationToken);
 
-        if (updatedInventoryRows == 0)
-        {
-            await transaction.RollbackAsync(
-                cancellationToken);
+                if (updatedInventoryRows == 0) {
+                    await transaction.RollbackAsync(cancellationToken);
 
-            return ReleaseInventoryResult.Conflict(
-                "Inventory state does not contain enough reserved quantity to release this reservation.");
-        }
+                    return ReleaseInventoryResult.Conflict(
+                        "Inventory state does not contain enough reserved quantity to release this reservation.");
+                }
 
-        await transaction.CommitAsync(
-            cancellationToken);
+                var occurredAt = DateTimeOffset.UtcNow;
+                var integrationEvent = new InventoryReservationReleased
+                {
+                    EventId = Guid.NewGuid(),
+                    OccurredAt = occurredAt,
+                    CorrelationId = reservationId,
+                    CausationId = null,
+                    ReservationId = reservationId,
+                    Sku = inventoryItem.Sku,
+                    Quantity = reservation.Quantity
+                };
 
-        var updatedInventoryItem =
-            await _dbContext.InventoryItems
-                .AsNoTracking()
-                .SingleAsync(
-                    item =>
-                        item.Id ==
-                        inventoryItemId,
-                    cancellationToken);
+                var outboxMessage = new OutboxMessage(
+                    integrationEvent.EventId,
+                    occurredAt,
+                    "inventory.reservation-released.v1",
+                    JsonSerializer.Serialize(integrationEvent),
+                    integrationEvent.CorrelationId,
+                    integrationEvent.CausationId);
 
-        return ReleaseInventoryResult.Success(
-            updatedInventoryItem.Id,
-            reservation.ReservationId,
-            updatedInventoryItem.Sku,
-            reservation.Quantity,
-            updatedInventoryItem.AvailableQuantity,
-            updatedInventoryItem.ReservedQuantity,
-            false);
+                dbContext.OutboxMessages.Add(outboxMessage);
+
+                await dbContext.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+
+                var updatedInventoryItem =
+                    await dbContext.InventoryItems
+                        .AsNoTracking()
+                        .SingleAsync(
+                            item => item.Id == inventoryItemId,
+                            cancellationToken);
+
+                return ReleaseInventoryResult.Success(
+                    updatedInventoryItem.Id,
+                    reservation.ReservationId,
+                    updatedInventoryItem.Sku,
+                    reservation.Quantity,
+                    updatedInventoryItem.AvailableQuantity,
+                    updatedInventoryItem.ReservedQuantity,
+                    false);
+            });
     }
 
     private async Task<ReserveInventoryResult>
         BuildExistingReservationResultAsync(
+            InventoryDbContext dbContext,
             InventoryReservation reservation,
-            CancellationToken cancellationToken)
-    {
+            CancellationToken cancellationToken) {
         var inventoryItem =
-            await _dbContext.InventoryItems
+            await dbContext.InventoryItems
                 .AsNoTracking()
                 .SingleOrDefaultAsync(
                     item =>
@@ -521,8 +579,7 @@ public sealed class InventoryApplicationService
                         reservation.InventoryItemId,
                     cancellationToken);
 
-        if (inventoryItem is null)
-        {
+        if (inventoryItem is null) {
             return ReserveInventoryResult.NotFound(
                 "Inventory item was not found.");
         }
@@ -538,8 +595,7 @@ public sealed class InventoryApplicationService
     }
 
     private static bool IsUniqueConstraintViolation(
-        DbUpdateException exception)
-    {
+        DbUpdateException exception) {
         return exception.InnerException is PostgresException
         {
             SqlState: PostgresErrorCodes.UniqueViolation
@@ -547,11 +603,32 @@ public sealed class InventoryApplicationService
     }
 }
 
+/// <summary>Represents the outcome of creating inventory.</summary>
+public sealed record CreateInventoryResult(
+    bool Succeeded,
+    bool IsConflict,
+    string Error,
+    Guid InventoryId,
+    string Sku,
+    int AvailableQuantity,
+    int ReservedQuantity) {
+    /// <summary>Creates a successful result.</summary>
+    public static CreateInventoryResult Success(Guid id, string sku, int available, int reserved) =>
+        new(true, false, string.Empty, id, sku, available, reserved);
+
+    /// <summary>Creates an invalid-input result.</summary>
+    public static CreateInventoryResult Invalid(string error) =>
+        new(false, false, error, Guid.Empty, string.Empty, 0, 0);
+
+    /// <summary>Creates a duplicate-SKU result.</summary>
+    public static CreateInventoryResult Conflict(string error) =>
+        new(false, true, error, Guid.Empty, string.Empty, 0, 0);
+}
+
 /// <summary>
 /// Represents the result of an inventory reservation operation.
 /// </summary>
-public sealed record ReserveInventoryResult
-{
+public sealed record ReserveInventoryResult {
     private ReserveInventoryResult(
         ReserveInventoryResultStatus status,
         string error,
@@ -561,8 +638,7 @@ public sealed record ReserveInventoryResult
         int reservedQuantity,
         int availableQuantity,
         int totalReservedQuantity,
-        bool alreadyReserved)
-    {
+        bool alreadyReserved) {
         Status = status;
         Error = error;
         InventoryItemId = inventoryItemId;
@@ -629,8 +705,7 @@ public sealed record ReserveInventoryResult
         int reservedQuantity = 0,
         int availableQuantity = 0,
         int totalReservedQuantity = 0,
-        bool alreadyReserved = false)
-    {
+        bool alreadyReserved = false) {
         return new ReserveInventoryResult(
             status,
             error,
@@ -653,8 +728,7 @@ public sealed record ReserveInventoryResult
         int reservedQuantity,
         int availableQuantity,
         int totalReservedQuantity,
-        bool alreadyReserved)
-    {
+        bool alreadyReserved) {
         return Create(
             ReserveInventoryResultStatus.Success,
             inventoryItemId: inventoryItemId,
@@ -670,8 +744,7 @@ public sealed record ReserveInventoryResult
     /// Creates an invalid-input result.
     /// </summary>
     public static ReserveInventoryResult Invalid(
-        string error)
-    {
+        string error) {
         return Create(
             ReserveInventoryResultStatus.Invalid,
             error);
@@ -681,8 +754,7 @@ public sealed record ReserveInventoryResult
     /// Creates a not-found result.
     /// </summary>
     public static ReserveInventoryResult NotFound(
-        string error)
-    {
+        string error) {
         return Create(
             ReserveInventoryResultStatus.NotFound,
             error);
@@ -692,8 +764,7 @@ public sealed record ReserveInventoryResult
     /// Creates an insufficient-inventory result.
     /// </summary>
     public static ReserveInventoryResult InsufficientInventory(
-        string error)
-    {
+        string error) {
         return Create(
             ReserveInventoryResultStatus.InsufficientInventory,
             error);
@@ -703,8 +774,7 @@ public sealed record ReserveInventoryResult
     /// Creates a conflict result.
     /// </summary>
     public static ReserveInventoryResult Conflict(
-        string error)
-    {
+        string error) {
         return Create(
             ReserveInventoryResultStatus.Conflict,
             error);
@@ -714,8 +784,7 @@ public sealed record ReserveInventoryResult
 /// <summary>
 /// Represents the possible outcomes of an inventory reservation operation.
 /// </summary>
-public enum ReserveInventoryResultStatus
-{
+public enum ReserveInventoryResultStatus {
     /// <summary>
     /// The reservation succeeded.
     /// </summary>
@@ -745,8 +814,7 @@ public enum ReserveInventoryResultStatus
 /// <summary>
 /// Represents the result of an inventory release operation.
 /// </summary>
-public sealed record ReleaseInventoryResult
-{
+public sealed record ReleaseInventoryResult {
     private ReleaseInventoryResult(
         ReleaseInventoryResultStatus status,
         string error,
@@ -756,8 +824,7 @@ public sealed record ReleaseInventoryResult
         int releasedQuantity,
         int availableQuantity,
         int totalReservedQuantity,
-        bool alreadyReleased)
-    {
+        bool alreadyReleased) {
         Status = status;
         Error = error;
         InventoryItemId = inventoryItemId;
@@ -823,8 +890,7 @@ public sealed record ReleaseInventoryResult
         int releasedQuantity = 0,
         int availableQuantity = 0,
         int totalReservedQuantity = 0,
-        bool alreadyReleased = false)
-    {
+        bool alreadyReleased = false) {
         return new ReleaseInventoryResult(
             status,
             error,
@@ -847,8 +913,7 @@ public sealed record ReleaseInventoryResult
         int releasedQuantity,
         int availableQuantity,
         int totalReservedQuantity,
-        bool alreadyReleased)
-    {
+        bool alreadyReleased) {
         return Create(
             ReleaseInventoryResultStatus.Success,
             inventoryItemId: inventoryItemId,
@@ -864,8 +929,7 @@ public sealed record ReleaseInventoryResult
     /// Creates an invalid-input result.
     /// </summary>
     public static ReleaseInventoryResult Invalid(
-        string error)
-    {
+        string error) {
         return Create(
             ReleaseInventoryResultStatus.Invalid,
             error);
@@ -875,8 +939,7 @@ public sealed record ReleaseInventoryResult
     /// Creates a not-found result.
     /// </summary>
     public static ReleaseInventoryResult NotFound(
-        string error)
-    {
+        string error) {
         return Create(
             ReleaseInventoryResultStatus.NotFound,
             error);
@@ -886,8 +949,7 @@ public sealed record ReleaseInventoryResult
     /// Creates a conflict result.
     /// </summary>
     public static ReleaseInventoryResult Conflict(
-        string error)
-    {
+        string error) {
         return Create(
             ReleaseInventoryResultStatus.Conflict,
             error);
@@ -897,8 +959,7 @@ public sealed record ReleaseInventoryResult
 /// <summary>
 /// Represents the possible outcomes of an inventory release operation.
 /// </summary>
-public enum ReleaseInventoryResultStatus
-{
+public enum ReleaseInventoryResultStatus {
     /// <summary>
     /// The release succeeded.
     /// </summary>
@@ -923,10 +984,8 @@ public enum ReleaseInventoryResultStatus
 /// <summary>
 /// Represents the result of an inventory lookup by SKU.
 /// </summary>
-public sealed record GetInventoryBySkuResult
-{
-    private GetInventoryBySkuResult()
-    {
+public sealed record GetInventoryBySkuResult {
+    private GetInventoryBySkuResult() {
     }
 
     /// <summary>
@@ -966,8 +1025,7 @@ public sealed record GetInventoryBySkuResult
         Guid inventoryItemId,
         string sku,
         int availableQuantity,
-        int reservedQuantity)
-    {
+        int reservedQuantity) {
         return new GetInventoryBySkuResult
         {
             Status = GetInventoryBySkuResultStatus.Success,
@@ -982,8 +1040,7 @@ public sealed record GetInventoryBySkuResult
     /// Creates an invalid lookup result.
     /// </summary>
     public static GetInventoryBySkuResult Invalid(
-        string error)
-    {
+        string error) {
         return new GetInventoryBySkuResult
         {
             Status = GetInventoryBySkuResultStatus.Invalid,
@@ -995,8 +1052,7 @@ public sealed record GetInventoryBySkuResult
     /// Creates a not-found lookup result.
     /// </summary>
     public static GetInventoryBySkuResult NotFound(
-        string error)
-    {
+        string error) {
         return new GetInventoryBySkuResult
         {
             Status = GetInventoryBySkuResultStatus.NotFound,
@@ -1008,8 +1064,7 @@ public sealed record GetInventoryBySkuResult
 /// <summary>
 /// Represents the possible outcomes of an inventory SKU lookup.
 /// </summary>
-public enum GetInventoryBySkuResultStatus
-{
+public enum GetInventoryBySkuResultStatus {
     /// <summary>
     /// The inventory item was found.
     /// </summary>

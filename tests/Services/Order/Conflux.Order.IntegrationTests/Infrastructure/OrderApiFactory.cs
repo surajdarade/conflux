@@ -56,6 +56,7 @@ public sealed class OrderApiFactory :
             _postgresContainer.GetConnectionString());
 
         builder.UseEnvironment("Development");
+        builder.UseSetting("CheckoutSaga:Enabled", "false");
 
         builder.ConfigureServices(
             services =>

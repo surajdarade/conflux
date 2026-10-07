@@ -1,4 +1,5 @@
 using Conflux.Inventory.Infrastructure;
+using Conflux.Inventory.Infrastructure.Sharding;
 using Conflux.Inventory.OutboxPublisher;
 using Conflux.Inventory.OutboxPublisher.Configuration;
 using Conflux.Inventory.OutboxPublisher.Kafka;
@@ -41,6 +42,7 @@ builder.Services.AddDbContext<InventoryDbContext>(
         options.UseNpgsql(
             builder.Configuration.GetConnectionString(
                 "InventoryDatabase")));
+builder.Services.AddSingleton<InventoryDbContextProvider>();
 
 builder.Services.AddSingleton<IKafkaEventPublisher>(
     serviceProvider =>

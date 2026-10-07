@@ -9,6 +9,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="FluentAssertions" />
 		<PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
 		<PackageReference Include="Microsoft.NET.Test.Sdk" />
 		<PackageReference Include="Testcontainers.PostgreSql" />
@@ -32,9 +33,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference
-		  Include="..\..\..\..\src\Services\Inventory\Conflux.Inventory\Conflux.Inventory.csproj"
-		  Aliases="global,Inventory" />
+		<ProjectReference Include="..\..\..\..\src\Services\Inventory\Conflux.Inventory\Conflux.Inventory.csproj" Aliases="global,Inventory" />
 	</ItemGroup>
 
 </Project>

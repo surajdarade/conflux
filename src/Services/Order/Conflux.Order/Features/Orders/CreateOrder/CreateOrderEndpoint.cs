@@ -1,6 +1,7 @@
 using Conflux.Order.Application.Orders;
 using Conflux.Order.Domain;
 using Conflux.Order.Infrastructure;
+using Conflux.Observability;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using OrderEntity = Conflux.Order.Domain.Order;
@@ -35,6 +36,7 @@ public static class CreateOrderEndpoint
         HttpRequest httpRequest,
         OrderDbContext dbContext,
         OrderInventoryOrchestrator inventoryOrchestrator,
+        ConfluxBusinessMetrics metrics,
         CancellationToken cancellationToken)
     {
         if (request.CustomerId == Guid.Empty)
@@ -174,7 +176,8 @@ public static class CreateOrderEndpoint
                 return BuildOrchestrationResult(
                     existingOrderInventoryResult,
                     existingOrder,
-                    created: false);
+                    created: false,
+                    metrics);
             }
 
             return Results.Ok(
@@ -208,6 +211,12 @@ public static class CreateOrderEndpoint
         catch (DbUpdateException exception)
             when (IsUniqueConstraintViolation(exception))
         {
+            foreach (var item in order.Items.ToList()) {
+                dbContext.Entry(item).State = EntityState.Detached;
+            }
+
+            dbContext.Entry(order).State = EntityState.Detached;
+
             var concurrentOrder = await dbContext.Orders
                 .AsNoTracking()
                 .Include(existing => existing.Items)
@@ -253,7 +262,8 @@ public static class CreateOrderEndpoint
                 return BuildOrchestrationResult(
                     concurrentOrderInventoryResult,
                     refreshedConcurrentOrder,
-                    created: false);
+                    created: false,
+                    metrics);
             }
 
             return Results.Ok(
@@ -269,14 +279,28 @@ public static class CreateOrderEndpoint
         return BuildOrchestrationResult(
             inventoryResult,
             order,
-            created: true);
+            created: true,
+            metrics);
     }
 
     private static IResult BuildOrchestrationResult(
         OrderInventoryOrchestrationResult result,
         OrderEntity order,
-        bool created)
+        bool created,
+        ConfluxBusinessMetrics metrics)
     {
+        if (created)
+        {
+            if (result.Status == OrderInventoryOrchestrationResultStatus.Success)
+            {
+                metrics.OrderCreated();
+            }
+            else
+            {
+                metrics.OrderFailed();
+            }
+        }
+
         return result.Status switch
         {
             OrderInventoryOrchestrationResultStatus.Success =>

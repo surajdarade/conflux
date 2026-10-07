@@ -1,0 +1,20 @@
+{
+  "title": "Conflux Distributed Platform",
+  "uid": "conflux-distributed",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5s",
+  "time": { "from": "now-15m", "to": "now" },
+  "panels": [
+    {"type":"timeseries","title":"HTTP Requests / sec","gridPos":{"x":0,"y":0,"w":12,"h":7},"targets":[{"expr":"sum(rate(http_server_request_duration_seconds_count[1m]))","legendFormat":"requests/s"}]},
+    {"type":"timeseries","title":"HTTP P95 Latency","gridPos":{"x":12,"y":0,"w":12,"h":7},"targets":[{"expr":"histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket[1m])))","legendFormat":"p95"}]},
+    {"type":"stat","title":"Orders Created","gridPos":{"x":0,"y":7,"w":6,"h":5},"targets":[{"expr":"sum(conflux_orders_created_total)","legendFormat":"orders"}]},
+    {"type":"stat","title":"Order Failures","gridPos":{"x":6,"y":7,"w":6,"h":5},"targets":[{"expr":"sum(conflux_orders_failed_total)","legendFormat":"failures"}]},
+    {"type":"stat","title":"Inventory Reservations","gridPos":{"x":12,"y":7,"w":6,"h":5},"targets":[{"expr":"sum(conflux_inventory_reserved_total)","legendFormat":"reserved"}]},
+    {"type":"stat","title":"Inventory Failures","gridPos":{"x":18,"y":7,"w":6,"h":5},"targets":[{"expr":"sum(conflux_inventory_failed_total)","legendFormat":"failures"}]},
+    {"type":"timeseries","title":"Payment Operations","gridPos":{"x":0,"y":12,"w":12,"h":7},"targets":[{"expr":"sum(rate(conflux_payments_authorized_total[1m]))","legendFormat":"authorized/s"},{"expr":"sum(rate(conflux_payments_captured_total[1m]))","legendFormat":"captured/s"},{"expr":"sum(rate(conflux_payments_refunded_total[1m]))","legendFormat":"refunded/s"},{"expr":"sum(rate(conflux_payments_voided_total[1m]))","legendFormat":"voided/s"}]},
+    {"type":"timeseries","title":"Reservation Latency","gridPos":{"x":12,"y":12,"w":12,"h":7},"targets":[{"expr":"histogram_quantile(0.99, sum by (le) (rate(conflux_inventory_reservation_duration_milliseconds_bucket[1m])))","legendFormat":"p99"}]},
+    {"type":"timeseries","title":"Saga Failures","gridPos":{"x":0,"y":19,"w":12,"h":7},"targets":[{"expr":"sum(rate(conflux_saga_failures_total[1m]))","legendFormat":"failures/s"}]},
+    {"type":"timeseries","title":"Runtime CPU","gridPos":{"x":12,"y":19,"w":12,"h":7},"targets":[{"expr":"sum(rate(process_cpu_seconds_total[1m]))","legendFormat":"cpu/s"}]}
+  ]
+}

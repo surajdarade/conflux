@@ -1,18 +1,21 @@
-using System.Text;
-using System.Text.Json;
 using Confluent.Kafka;
 using Confluent.Kafka.Admin;
 using Conflux.Contracts.Events;
 using Conflux.Inventory.Infrastructure;
+using Conflux.Inventory.Infrastructure.Sharding;
 using Conflux.Inventory.OutboxPublisher;
 using Conflux.Inventory.OutboxPublisher.Configuration;
 using Conflux.Inventory.OutboxPublisher.Kafka;
 using Conflux.Outbox;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System.Text;
+using System.Text.Json;
 using Xunit;
+
 using InventoryOutboxPublisherTestFixture =
     Conflux.Inventory.OutboxPublisher.IntegrationTests.Infrastructure
         .InventoryOutboxPublisherTestFixture;
@@ -95,9 +98,8 @@ public sealed class InventoryOutboxPublisherTests :
             new CancellationTokenSource(
                 TimeSpan.FromSeconds(15));
 
-        var workerTask =
-            worker.StartAsync(
-                cancellationTokenSource.Token);
+        await worker.StartAsync(
+            TestContext.Current.CancellationToken);
 
         try {
             var publishedMessage =
@@ -175,14 +177,14 @@ public sealed class InventoryOutboxPublisherTests :
                 .BeNull();
         }
         finally {
-            await cancellationTokenSource.CancelAsync();
-            await workerTask;
+            await worker.StopAsync(
+                TestContext.Current.CancellationToken);
         }
     }
 
     /// <summary>
-    /// Verifies that a failed publication releases the claim and is retried
-    /// successfully.
+    /// Verifies that a failed publication is retried and eventually
+    /// marked as published.
     /// </summary>
     [Fact]
     public async Task FailedPublication_IsRetried_AndEventuallyMarkedPublished() {
@@ -235,9 +237,8 @@ public sealed class InventoryOutboxPublisherTests :
             new CancellationTokenSource(
                 TimeSpan.FromSeconds(10));
 
-        var workerTask =
-            worker.StartAsync(
-                cancellationTokenSource.Token);
+        await worker.StartAsync(
+            TestContext.Current.CancellationToken);
 
         try {
             await WaitForOutboxStateAsync(
@@ -283,8 +284,8 @@ public sealed class InventoryOutboxPublisherTests :
                 .BeNull();
         }
         finally {
-            await cancellationTokenSource.CancelAsync();
-            await workerTask;
+            await worker.StopAsync(
+                TestContext.Current.CancellationToken);
         }
     }
 
@@ -367,8 +368,10 @@ public sealed class InventoryOutboxPublisherTests :
 
         services.AddLogging(
             builder =>
+            {
                 builder.SetMinimumLevel(
-                    LogLevel.Warning));
+                    LogLevel.Warning);
+            });
 
         services.AddOptions<KafkaOptions>()
             .Configure(
@@ -389,10 +392,27 @@ public sealed class InventoryOutboxPublisherTests :
                         TimeSpan.FromSeconds(1);
                 });
 
-        services.AddDbContext<InventoryDbContext>(
-            options =>
-                options.UseNpgsql(
-                    _fixture.PostgresConnectionString));
+        var configuration =
+            new ConfigurationBuilder()
+                .AddInMemoryCollection(
+                    new Dictionary<string, string?>
+                    {
+                        ["ConnectionStrings:InventoryDatabase"] =
+                            _fixture.PostgresConnectionString,
+
+                        ["InventorySharding:Enabled"] =
+                            "false"
+                    })
+                .Build();
+
+        services.AddSingleton<IConfiguration>(
+            configuration);
+
+        services.AddSingleton<InventoryDbContextProvider>(
+            serviceProvider =>
+                new InventoryDbContextProvider(
+                    serviceProvider.GetRequiredService<
+                        IConfiguration>()));
 
         services.AddSingleton<IKafkaEventPublisher>(
             publisher ??
@@ -409,7 +429,11 @@ public sealed class InventoryOutboxPublisherTests :
                 serviceProvider.GetRequiredService<
                     OutboxPublisherWorker>());
 
-        return services.BuildServiceProvider();
+        return services.BuildServiceProvider(
+            new ServiceProviderOptions
+            {
+                ValidateScopes = true
+            });
     }
 
     private async Task WaitForOutboxStateAsync(
@@ -441,8 +465,25 @@ public sealed class InventoryOutboxPublisherTests :
                 cancellationToken);
         }
 
+        await using var diagnosticContext =
+            _fixture.CreateDbContext();
+
+        var diagnosticMessage =
+            await diagnosticContext.OutboxMessages
+                .AsNoTracking()
+                .SingleAsync(
+                    message =>
+                        message.Id == eventId,
+                    CancellationToken.None);
+
         throw new TimeoutException(
-            $"Outbox message {eventId} did not reach expected state.");
+            $"Outbox message {eventId} did not reach expected state. " +
+            $"AttemptCount={diagnosticMessage.AttemptCount}, " +
+            $"PublishedAt={diagnosticMessage.PublishedAt}, " +
+            $"FirstAttemptedAt={diagnosticMessage.FirstAttemptedAt}, " +
+            $"ClaimedAt={diagnosticMessage.ClaimedAt}, " +
+            $"ClaimedBy={diagnosticMessage.ClaimedBy}, " +
+            $"LastError={diagnosticMessage.LastError}");
     }
 
     private sealed class FailOnceKafkaEventPublisher :

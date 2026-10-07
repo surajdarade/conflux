@@ -1,5 +1,9 @@
 using Conflux.Catalog.Domain;
 using Conflux.Catalog.Infrastructure;
+using Conflux.Catalog.ReadModel;
+using Conflux.Contracts.Events;
+using Conflux.Outbox;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 
 namespace Conflux.Catalog.Features.Products.CreateProduct;
@@ -28,6 +32,7 @@ public static class CreateProductEndpoint
     private static async Task<IResult> HandleAsync(
         CreateProductRequest request,
         CatalogDbContext dbContext,
+        ProductProjectionService projectionService,
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(request.Sku))
@@ -100,8 +105,37 @@ public static class CreateProductEndpoint
             request.Currency);
 
         dbContext.Products.Add(product);
+        await projectionService.ProjectAsync(product, cancellationToken);
+
+        var occurredAt = DateTimeOffset.UtcNow;
+        var productCreated = new ProductCreated
+        {
+            EventId = Guid.NewGuid(),
+            OccurredAt = occurredAt,
+            CorrelationId = product.Id,
+            CausationId = null,
+            ProductId = product.Id,
+            Sku = product.Sku,
+            Name = product.Name,
+            Description = product.Description,
+            Price = product.Price,
+            Currency = product.Currency,
+            IsActive = product.IsActive,
+            CreatedAt = product.CreatedAt,
+            UpdatedAt = product.UpdatedAt
+        };
+
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+        dbContext.OutboxMessages.Add(new OutboxMessage(
+            productCreated.EventId,
+            occurredAt,
+            "catalog.product-created.v1",
+            JsonSerializer.Serialize(productCreated),
+            productCreated.CorrelationId,
+            productCreated.CausationId));
 
         await dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         var response = new CreateProductResponse
         {

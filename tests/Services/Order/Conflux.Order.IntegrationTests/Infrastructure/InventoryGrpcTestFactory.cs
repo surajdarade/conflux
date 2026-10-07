@@ -5,6 +5,7 @@ using Grpc.Net.Client;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Testcontainers.PostgreSql;
@@ -17,7 +18,8 @@ namespace Conflux.Order.IntegrationTests.Infrastructure;
 /// and exposes a gRPC channel backed by the test server's HTTP handler.
 /// </summary>
 public sealed class InventoryGrpcTestFactory :
-    WebApplicationFactory<InventoryProgram> {
+    WebApplicationFactory<InventoryProgram>
+{
     private readonly PostgreSqlContainer _postgresContainer =
         new PostgreSqlBuilder("postgres:17")
             .WithDatabase("conflux_inventory_test")
@@ -32,7 +34,8 @@ public sealed class InventoryGrpcTestFactory :
     /// The token used to cancel startup.
     /// </param>
     public async Task StartAsync(
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken)
+    {
         await _postgresContainer.StartAsync(
             cancellationToken);
 
@@ -54,7 +57,8 @@ public sealed class InventoryGrpcTestFactory :
     /// <returns>
     /// A gRPC channel configured to use the Inventory test server.
     /// </returns>
-    public GrpcChannel CreateGrpcChannel() {
+    public GrpcChannel CreateGrpcChannel()
+    {
         var handler = Server.CreateHandler();
 
         return GrpcChannel.ForAddress(
@@ -72,7 +76,8 @@ public sealed class InventoryGrpcTestFactory :
     /// The token used to cancel shutdown.
     /// </param>
     public async Task StopAsync(
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken)
+    {
         Dispose();
 
         await _postgresContainer.StopAsync(
@@ -88,7 +93,22 @@ public sealed class InventoryGrpcTestFactory :
     /// The web host builder being configured.
     /// </param>
     protected override void ConfigureWebHost(
-        IWebHostBuilder builder) {
+    IWebHostBuilder builder)
+    {
+        builder.ConfigureAppConfiguration(
+            (_, configuration) =>
+            {
+                configuration.AddInMemoryCollection(
+                    new Dictionary<string, string?>
+                    {
+                        ["ConnectionStrings:InventoryDatabase"] =
+                            _postgresContainer.GetConnectionString(),
+
+                        ["InventorySharding:Enabled"] =
+                            "false"
+                    });
+            });
+
         builder.ConfigureServices(services =>
         {
             services.RemoveAll<

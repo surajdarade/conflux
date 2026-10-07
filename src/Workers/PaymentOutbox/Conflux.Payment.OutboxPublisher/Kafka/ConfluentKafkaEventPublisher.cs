@@ -1,6 +1,7 @@
 using System.Text;
 using Confluent.Kafka;
 using Conflux.Outbox;
+using Conflux.Kafka;
 
 namespace Conflux.Payment.OutboxPublisher.Kafka;
 
@@ -81,6 +82,8 @@ public sealed class ConfluentKafkaEventPublisher :
                 Encoding.UTF8.GetBytes(
                     message.CausationId.Value.ToString()));
         }
+
+        KafkaTrace.Inject(headers);
 
         var kafkaMessage =
             new Message<string, string>

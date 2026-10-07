@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Conflux.Kafka\Conflux.Kafka.csproj" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
 
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
@@ -23,11 +24,20 @@
 
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
 
+    <PackageReference Include="Confluent.Kafka" />
+
     <PackageReference Include="Grpc.Net.Client" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
+  
+    <ProjectReference Include="..\..\..\BuildingBlocks\Conflux.Observability\Conflux.Observability.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\BuildingBlocks\Conflux.Contracts\Conflux.Contracts.csproj" />
+
+    <ProjectReference Include="..\..\..\BuildingBlocks\Conflux.Outbox\Conflux.Outbox.csproj" />
+
+    <ProjectReference Include="..\..\..\BuildingBlocks\Conflux.Inbox\Conflux.Inbox.csproj" />
   </ItemGroup>
 
 </Project>

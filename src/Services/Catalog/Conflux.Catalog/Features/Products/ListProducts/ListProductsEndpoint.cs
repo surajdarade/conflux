@@ -56,18 +56,18 @@ public static class ListProductsEndpoint
                 });
         }
 
-        var totalCount = await dbContext.Products
+        var totalCount = await dbContext.ProductReadModels
             .LongCountAsync(cancellationToken);
 
-        var products = await dbContext.Products
+        var products = await dbContext.ProductReadModels
             .AsNoTracking()
-            .OrderBy(product => product.Id)
+            .OrderBy(product => product.ProductId)
             .Skip((requestedPage - 1) * requestedPageSize)
             .Take(requestedPageSize)
             .Select(
                 product => new ProductSummary
                 {
-                    ProductId = product.Id,
+                    ProductId = product.ProductId,
                     Sku = product.Sku,
                     Name = product.Name,
                     Price = product.Price,

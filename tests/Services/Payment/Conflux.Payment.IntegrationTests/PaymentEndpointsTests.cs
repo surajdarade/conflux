@@ -1147,6 +1147,145 @@ public sealed class PaymentEndpointsTests :
             .Be(currency);
     }
 
+
+    /// <summary>Verifies that capture persists a PaymentCaptured Outbox event.</summary>
+    [Fact]
+    public async Task CapturePayment_PersistsCapturedOutboxEvent()
+    {
+        var authorization = await CreateAuthorizedPaymentAsync();
+
+        var response = await _client.PostAsync(
+            $"/api/v1/payments/{authorization.PaymentId}/capture",
+            null,
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PaymentDbContext>();
+        var message = await db.OutboxMessages.SingleAsync(
+            item => item.EventType == "payment.captured.v1" && item.CorrelationId == authorization.OrderId,
+            TestContext.Current.CancellationToken);
+        message.PublishedAt.Should().BeNull();
+        var captured = JsonSerializer.Deserialize<PaymentCaptured>(message.Payload);
+        captured.Should().NotBeNull();
+        captured!.PaymentId.Should().Be(authorization.PaymentId);
+        captured.EventId.Should().Be(message.Id);
+    }
+
+    /// <summary>Verifies that void persists a PaymentVoided Outbox event.</summary>
+    [Fact]
+    public async Task VoidPayment_PersistsVoidedOutboxEvent()
+    {
+        var authorization = await CreateAuthorizedPaymentAsync();
+
+        var response = await _client.PostAsync(
+            $"/api/v1/payments/{authorization.PaymentId}/void",
+            null,
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PaymentDbContext>();
+        var message = await db.OutboxMessages.SingleAsync(
+            item => item.EventType == "payment.voided.v1" && item.CorrelationId == authorization.OrderId,
+            TestContext.Current.CancellationToken);
+        message.PublishedAt.Should().BeNull();
+        var voided = JsonSerializer.Deserialize<PaymentVoided>(message.Payload);
+        voided.Should().NotBeNull();
+        voided!.PaymentId.Should().Be(authorization.PaymentId);
+        voided.EventId.Should().Be(message.Id);
+    }
+
+    /// <summary>
+    /// Verifies that a captured payment can be refunded and that the operation
+    /// is persisted through the transactional Outbox.
+    /// </summary>
+    [Fact]
+    public async Task RefundPayment_CapturedPayment_ReturnsOkAndPersistsOutboxEvent()
+    {
+        var authorization = await CreateAuthorizedPaymentAsync();
+
+        var captureResponse = await _client.PostAsync(
+            $"/api/v1/payments/{authorization.PaymentId}/capture",
+            null,
+            TestContext.Current.CancellationToken);
+
+        captureResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var response = await _client.PostAsync(
+            $"/api/v1/payments/{authorization.PaymentId}/refund",
+            null,
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var refund = await response.Content.ReadFromJsonAsync<
+            Conflux.Payment.Features.Payments.RefundPayment.RefundPaymentResponse>(
+            TestContext.Current.CancellationToken);
+
+        refund.Should().NotBeNull();
+        refund!.PaymentId.Should().Be(authorization.PaymentId);
+        refund.Status.Should().Be(Conflux.Payment.Domain.PaymentStatus.Refunded);
+        refund.AlreadyRefunded.Should().BeFalse();
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PaymentDbContext>();
+
+        var payment = await db.Payments.AsNoTracking().SingleAsync(
+            item => item.Id == authorization.PaymentId,
+            TestContext.Current.CancellationToken);
+
+        payment.Status.Should().Be(Conflux.Payment.Domain.PaymentStatus.Refunded);
+
+        var outbox = await db.OutboxMessages.SingleAsync(
+            item => item.EventType == "payment.refunded.v1" &&
+                    item.CorrelationId == authorization.OrderId,
+            TestContext.Current.CancellationToken);
+
+        outbox.PublishedAt.Should().BeNull();
+        var refunded = JsonSerializer.Deserialize<PaymentRefunded>(outbox.Payload);
+        refunded.Should().NotBeNull();
+        refunded!.EventId.Should().Be(outbox.Id);
+        refunded.PaymentId.Should().Be(authorization.PaymentId);
+    }
+
+    /// <summary>
+    /// Verifies that refunding an already refunded payment is idempotent.
+    /// </summary>
+    [Fact]
+    public async Task RefundPayment_AlreadyRefundedPayment_ReturnsOk()
+    {
+        var authorization = await CreateAuthorizedPaymentAsync();
+
+        await _client.PostAsync(
+            $"/api/v1/payments/{authorization.PaymentId}/capture",
+            null,
+            TestContext.Current.CancellationToken);
+
+        var firstResponse = await _client.PostAsync(
+            $"/api/v1/payments/{authorization.PaymentId}/refund",
+            null,
+            TestContext.Current.CancellationToken);
+
+        var secondResponse = await _client.PostAsync(
+            $"/api/v1/payments/{authorization.PaymentId}/refund",
+            null,
+            TestContext.Current.CancellationToken);
+
+        firstResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        secondResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var refund = await secondResponse.Content.ReadFromJsonAsync<
+            Conflux.Payment.Features.Payments.RefundPayment.RefundPaymentResponse>(
+            TestContext.Current.CancellationToken);
+
+        refund.Should().NotBeNull();
+        refund!.AlreadyRefunded.Should().BeTrue();
+        refund.Status.Should().Be(Conflux.Payment.Domain.PaymentStatus.Refunded);
+    }
+
     private async Task<AuthorizePaymentResponse>
         CreateAuthorizedPaymentAsync()
     {

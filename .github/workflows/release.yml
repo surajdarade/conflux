@@ -1,0 +1,84 @@
+name: Conflux Release
+
+on:
+  push:
+    tags: [ 'v*.*.*' ]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: gateway
+            dockerfile: deploy/docker/Dockerfile.service
+            project: src/Gateway/Conflux.Gateway/Conflux.Gateway.csproj
+            dll: Conflux.Gateway.dll
+          - name: identity
+            dockerfile: deploy/docker/Dockerfile.service
+            project: src/Services/Identity/Conflux.Identity/Conflux.Identity.csproj
+            dll: Conflux.Identity.dll
+          - name: catalog
+            dockerfile: deploy/docker/Dockerfile.service
+            project: src/Services/Catalog/Conflux.Catalog/Conflux.Catalog.csproj
+            dll: Conflux.Catalog.dll
+          - name: inventory
+            dockerfile: deploy/docker/Dockerfile.service
+            project: src/Services/Inventory/Conflux.Inventory/Conflux.Inventory.csproj
+            dll: Conflux.Inventory.dll
+          - name: order
+            dockerfile: deploy/docker/Dockerfile.service
+            project: src/Services/Order/Conflux.Order/Conflux.Order.csproj
+            dll: Conflux.Order.dll
+          - name: payment
+            dockerfile: deploy/docker/Dockerfile.service
+            project: src/Services/Payment/Conflux.Payment/Conflux.Payment.csproj
+            dll: Conflux.Payment.dll
+          - name: fulfillment
+            dockerfile: deploy/docker/Dockerfile.service
+            project: src/Services/Fulfillment/Conflux.Fulfillment/Conflux.Fulfillment.csproj
+            dll: Conflux.Fulfillment.dll
+          - name: inventory-outbox
+            dockerfile: deploy/docker/Dockerfile.worker
+            project: src/Workers/InventoryOutbox/Conflux.Inventory.OutboxPublisher/Conflux.Inventory.OutboxPublisher.csproj
+            dll: Conflux.Inventory.OutboxPublisher.dll
+          - name: order-outbox
+            dockerfile: deploy/docker/Dockerfile.worker
+            project: src/Workers/OrderOutbox/Conflux.Order.OutboxPublisher/Conflux.Order.OutboxPublisher.csproj
+            dll: Conflux.Order.OutboxPublisher.dll
+          - name: payment-outbox
+            dockerfile: deploy/docker/Dockerfile.worker
+            project: src/Workers/PaymentOutbox/Conflux.Payment.OutboxPublisher/Conflux.Payment.OutboxPublisher.csproj
+            dll: Conflux.Payment.OutboxPublisher.dll
+          - name: catalog-outbox
+            dockerfile: deploy/docker/Dockerfile.worker
+            project: src/Workers/CatalogOutbox/Conflux.Catalog.OutboxPublisher/Conflux.Catalog.OutboxPublisher.csproj
+            dll: Conflux.Catalog.OutboxPublisher.dll
+          - name: catalog-projection
+            dockerfile: deploy/docker/Dockerfile.worker
+            project: src/Workers/CatalogProjection/Conflux.Catalog.ProjectionWorker/Conflux.Catalog.ProjectionWorker.csproj
+            dll: Conflux.Catalog.ProjectionWorker.dll
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          build-args: |
+            PROJECT=${{ matrix.project }}
+            APP_DLL=${{ matrix.dll }}
+          tags: ghcr.io/${{ github.repository }}/${{ matrix.name }}:${{ github.ref_name }}
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ github.ref_name }}

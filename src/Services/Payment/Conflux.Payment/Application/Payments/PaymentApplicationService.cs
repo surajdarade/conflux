@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Conflux.Contracts.Events;
 using Conflux.Outbox;
+using Conflux.Observability;
 using Conflux.Payment.Domain;
 using Conflux.Payment.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +20,7 @@ public sealed class PaymentApplicationService
         "payment.authorized.v1";
 
     private readonly PaymentDbContext _dbContext;
+    private readonly ConfluxBusinessMetrics _metrics;
 
     /// <summary>
     /// Initializes a new instance of the
@@ -27,10 +29,22 @@ public sealed class PaymentApplicationService
     /// <param name="dbContext">
     /// The Payment database context.
     /// </param>
+    /// <param name="metrics"></param>
     public PaymentApplicationService(
-        PaymentDbContext dbContext)
+        PaymentDbContext dbContext,
+        ConfluxBusinessMetrics metrics)
     {
         _dbContext = dbContext;
+        _metrics = metrics;
+    }
+
+    /// <summary>
+    /// Initializes the service with default business metrics.
+    /// </summary>
+    /// <param name="dbContext">The payment database context.</param>
+    public PaymentApplicationService(PaymentDbContext dbContext)
+        : this(dbContext, new ConfluxBusinessMetrics())
+    {
     }
 
     /// <summary>
@@ -125,6 +139,7 @@ public sealed class PaymentApplicationService
             if (existingPayment.Status ==
                 PaymentStatus.Authorized)
             {
+                _metrics.PaymentAuthorized();
                 return AuthorizePaymentResult.Success(
                     existingPayment,
                     alreadyAuthorized: true);
@@ -251,37 +266,63 @@ public sealed class PaymentApplicationService
                 "PaymentId is required.");
         }
 
-        var payment =
-            await _dbContext.Payments
-                .SingleOrDefaultAsync(
-                    currentPayment =>
-                        currentPayment.Id == paymentId,
-                    cancellationToken);
+        await using var transaction =
+            await _dbContext.Database.BeginTransactionAsync(
+                cancellationToken);
+
+        var payment = await _dbContext.Payments
+            .FromSqlInterpolated(
+                $"SELECT * FROM payments WHERE \"Id\" = {paymentId} FOR UPDATE")
+            .SingleOrDefaultAsync(cancellationToken);
 
         if (payment is null)
         {
+            await transaction.RollbackAsync(cancellationToken);
             return CapturePaymentResult.NotFound(
                 "Payment was not found.");
         }
 
         if (payment.Status == PaymentStatus.Captured)
         {
-            return CapturePaymentResult.Success(
+            await transaction.CommitAsync(cancellationToken);
+            _metrics.PaymentCaptured();
+        return CapturePaymentResult.Success(
                 payment,
                 alreadyCaptured: true);
         }
 
         if (payment.Status != PaymentStatus.Authorized)
         {
+            await transaction.RollbackAsync(cancellationToken);
             return CapturePaymentResult.Conflict(
-                $"Payment cannot be captured because its " +
-                $"current status is {payment.Status}.");
+                $"Payment cannot be captured because its current status is {payment.Status}.");
         }
 
         payment.Capture();
+        var occurredAt = DateTimeOffset.UtcNow;
+        var integrationEvent = new PaymentCaptured
+        {
+            EventId = Guid.NewGuid(),
+            OccurredAt = occurredAt,
+            CorrelationId = payment.OrderId,
+            CausationId = null,
+            PaymentId = payment.Id,
+            OrderId = payment.OrderId,
+            CustomerId = payment.CustomerId,
+            Amount = payment.Amount,
+            Currency = payment.Currency
+        };
 
-        await _dbContext.SaveChangesAsync(
-            cancellationToken);
+        _dbContext.OutboxMessages.Add(new OutboxMessage(
+            integrationEvent.EventId,
+            occurredAt,
+            "payment.captured.v1",
+            JsonSerializer.Serialize(integrationEvent),
+            integrationEvent.CorrelationId,
+            integrationEvent.CausationId));
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         return CapturePaymentResult.Success(
             payment,
@@ -310,41 +351,139 @@ public sealed class PaymentApplicationService
                 "PaymentId is required.");
         }
 
-        var payment =
-            await _dbContext.Payments
-                .SingleOrDefaultAsync(
-                    currentPayment =>
-                        currentPayment.Id == paymentId,
-                    cancellationToken);
+        await using var transaction =
+            await _dbContext.Database.BeginTransactionAsync(
+                cancellationToken);
+
+        var payment = await _dbContext.Payments
+            .FromSqlInterpolated(
+                $"SELECT * FROM payments WHERE \"Id\" = {paymentId} FOR UPDATE")
+            .SingleOrDefaultAsync(cancellationToken);
 
         if (payment is null)
         {
+            await transaction.RollbackAsync(cancellationToken);
             return VoidPaymentResult.NotFound(
                 "Payment was not found.");
         }
 
         if (payment.Status == PaymentStatus.Voided)
         {
-            return VoidPaymentResult.Success(
+            await transaction.CommitAsync(cancellationToken);
+            _metrics.PaymentVoided();
+        return VoidPaymentResult.Success(
                 payment,
                 alreadyVoided: true);
         }
 
         if (payment.Status != PaymentStatus.Authorized)
         {
+            await transaction.RollbackAsync(cancellationToken);
             return VoidPaymentResult.Conflict(
-                $"Payment cannot be voided because its " +
-                $"current status is {payment.Status}.");
+                $"Payment cannot be voided because its current status is {payment.Status}.");
         }
 
         payment.Void();
+        var occurredAt = DateTimeOffset.UtcNow;
+        var integrationEvent = new PaymentVoided
+        {
+            EventId = Guid.NewGuid(),
+            OccurredAt = occurredAt,
+            CorrelationId = payment.OrderId,
+            CausationId = null,
+            PaymentId = payment.Id,
+            OrderId = payment.OrderId,
+            CustomerId = payment.CustomerId
+        };
 
-        await _dbContext.SaveChangesAsync(
-            cancellationToken);
+        _dbContext.OutboxMessages.Add(new OutboxMessage(
+            integrationEvent.EventId,
+            occurredAt,
+            "payment.voided.v1",
+            JsonSerializer.Serialize(integrationEvent),
+            integrationEvent.CorrelationId,
+            integrationEvent.CausationId));
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         return VoidPaymentResult.Success(
             payment,
             alreadyVoided: false);
+    }
+
+    /// <summary>
+    /// Refunds a previously captured payment.
+    /// </summary>
+    /// <param name="paymentId">The payment identifier.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>The refund operation result.</returns>
+    public async Task<RefundPaymentResult> RefundAsync(
+        Guid paymentId,
+        CancellationToken cancellationToken)
+    {
+        if (paymentId == Guid.Empty)
+        {
+            return RefundPaymentResult.Invalid("PaymentId is required.");
+        }
+
+        await using var transaction =
+            await _dbContext.Database.BeginTransactionAsync(
+                cancellationToken);
+
+        var payment = await _dbContext.Payments
+            .FromSqlInterpolated(
+                $"SELECT * FROM payments WHERE \"Id\" = {paymentId} FOR UPDATE")
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (payment is null)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            return RefundPaymentResult.NotFound("Payment was not found.");
+        }
+
+        if (payment.Status == PaymentStatus.Refunded)
+        {
+            await transaction.CommitAsync(cancellationToken);
+            _metrics.PaymentRefunded();
+        return RefundPaymentResult.Success(payment, alreadyRefunded: true);
+        }
+
+        if (payment.Status != PaymentStatus.Captured)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            return RefundPaymentResult.Conflict(
+                $"Payment cannot be refunded because its current status is {payment.Status}.");
+        }
+
+        payment.Refund();
+
+        var occurredAt = DateTimeOffset.UtcNow;
+        var integrationEvent = new PaymentRefunded
+        {
+            EventId = Guid.NewGuid(),
+            OccurredAt = occurredAt,
+            CorrelationId = payment.OrderId,
+            CausationId = null,
+            PaymentId = payment.Id,
+            OrderId = payment.OrderId,
+            CustomerId = payment.CustomerId,
+            Amount = payment.Amount,
+            Currency = payment.Currency
+        };
+
+        _dbContext.OutboxMessages.Add(new OutboxMessage(
+            integrationEvent.EventId,
+            occurredAt,
+            "payment.refunded.v1",
+            JsonSerializer.Serialize(integrationEvent),
+            integrationEvent.CorrelationId,
+            integrationEvent.CausationId));
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+
+        return RefundPaymentResult.Success(payment, alreadyRefunded: false);
     }
 
     /// <summary>
@@ -726,6 +865,76 @@ public enum VoidPaymentResultStatus
     /// <summary>
     /// The payment cannot be voided in its current state.
     /// </summary>
+    Conflict
+}
+
+/// <summary>
+/// Represents the possible results of a payment refund operation.
+/// </summary>
+public sealed record RefundPaymentResult
+{
+    private RefundPaymentResult(
+        RefundPaymentResultStatus status,
+        PaymentEntity? payment,
+        string? error,
+        bool alreadyRefunded)
+    {
+        Status = status;
+        Payment = payment;
+        Error = error;
+        AlreadyRefunded = alreadyRefunded;
+    }
+
+    /// <summary>Gets the operation status.</summary>
+    public RefundPaymentResultStatus Status { get; }
+
+    /// <summary>Gets the payment when the operation succeeds.</summary>
+    public PaymentEntity? Payment { get; }
+
+    /// <summary>Gets the error when the operation does not succeed.</summary>
+    public string? Error { get; }
+
+    /// <summary>Gets whether the payment was already refunded.</summary>
+    public bool AlreadyRefunded { get; }
+
+    /// <summary>Creates a successful result.</summary>
+    public static RefundPaymentResult Success(
+        PaymentEntity payment,
+        bool alreadyRefunded) =>
+        new(
+            RefundPaymentResultStatus.Success,
+            payment,
+            null,
+            alreadyRefunded);
+
+    /// <summary>Creates an invalid-input result.</summary>
+    public static RefundPaymentResult Invalid(string error) =>
+        new(RefundPaymentResultStatus.Invalid, null, error, false);
+
+    /// <summary>Creates a not-found result.</summary>
+    public static RefundPaymentResult NotFound(string error) =>
+        new(RefundPaymentResultStatus.NotFound, null, error, false);
+
+    /// <summary>Creates a conflict result.</summary>
+    public static RefundPaymentResult Conflict(string error) =>
+        new(RefundPaymentResultStatus.Conflict, null, error, false);
+}
+
+/// <summary>
+/// Represents the possible statuses of a payment refund operation.
+/// </summary>
+public enum RefundPaymentResultStatus
+{
+    /// <summary>The refund succeeded.</summary>
+    Success,
+
+    /// <summary>The request was invalid.</summary>
+    Invalid,
+
+    /// <summary>The payment was not found.</summary>
+    NotFound,
+
+    /// <summary>The current payment state conflicts with the requested operation.</summary>
     Conflict
 }
 

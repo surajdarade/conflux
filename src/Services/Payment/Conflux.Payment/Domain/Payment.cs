@@ -174,4 +174,19 @@ public sealed class Payment
         Status = PaymentStatus.Voided;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
+
+    /// <summary>
+    /// Marks a captured payment as refunded.
+    /// </summary>
+    public void Refund()
+    {
+        if (Status != PaymentStatus.Captured)
+        {
+            throw new InvalidOperationException(
+                $"Payment cannot be refunded from {Status} state.");
+        }
+
+        Status = PaymentStatus.Refunded;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
 }

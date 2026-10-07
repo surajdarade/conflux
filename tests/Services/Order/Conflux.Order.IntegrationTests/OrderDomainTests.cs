@@ -474,6 +474,37 @@ public sealed class OrderDomainTests
     }
 
 
+
+    /// <summary>Verifies that payment authorization records the payment and advances the order.</summary>
+    [Fact]
+    public void Order_RecordPaymentAuthorization_AssociatesPaymentAndMovesToPaymentPending()
+    {
+        var order = CreateOrder();
+        order.AddItem(new OrderItem(Guid.NewGuid(), "CONFLUX-001", 1, 100m, "INR"));
+        order.MarkInventoryReserved();
+        var paymentId = Guid.NewGuid();
+
+        order.RecordPaymentAuthorization(paymentId);
+
+        Assert.Equal(OrderStatus.PaymentPending, order.Status);
+        Assert.Equal(paymentId, order.PaymentId);
+    }
+
+    /// <summary>Verifies that a captured payment can confirm the order.</summary>
+    [Fact]
+    public void Order_ConfirmPaymentCapture_MovesPaymentPendingToConfirmed()
+    {
+        var order = CreateOrder();
+        order.AddItem(new OrderItem(Guid.NewGuid(), "CONFLUX-001", 1, 100m, "INR"));
+        order.MarkInventoryReserved();
+        var paymentId = Guid.NewGuid();
+        order.RecordPaymentAuthorization(paymentId);
+
+        order.ConfirmPaymentCapture(paymentId);
+
+        Assert.Equal(OrderStatus.Confirmed, order.Status);
+    }
+
     /// <summary>
     /// Creates a valid order used by the domain tests.
     /// </summary>

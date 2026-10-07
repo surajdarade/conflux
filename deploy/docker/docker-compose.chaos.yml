@@ -1,0 +1,48 @@
+services:
+  toxiproxy:
+    depends_on:
+      postgres: { condition: service_healthy }
+      kafka: { condition: service_started }
+
+  inventory:
+    environment:
+      ConnectionStrings__InventoryDatabase: Host=toxiproxy;Port=15432;Database=conflux_inventory;Username=postgres;Password=postgres
+      InventorySharding__Shards__0__ConnectionString: Host=toxiproxy;Port=15432;Database=conflux_inventory_shard_0;Username=postgres;Password=postgres
+      InventorySharding__Shards__1__ConnectionString: Host=toxiproxy;Port=15432;Database=conflux_inventory_shard_1;Username=postgres;Password=postgres
+      InventorySharding__Shards__2__ConnectionString: Host=toxiproxy;Port=15432;Database=conflux_inventory_shard_2;Username=postgres;Password=postgres
+      InventorySharding__Shards__3__ConnectionString: Host=toxiproxy;Port=15432;Database=conflux_inventory_shard_3;Username=postgres;Password=postgres
+
+  inventory-outbox:
+    environment:
+      ConnectionStrings__InventoryDatabase: Host=toxiproxy;Port=15432;Database=conflux_inventory;Username=postgres;Password=postgres
+      InventorySharding__Shards__0__ConnectionString: Host=toxiproxy;Port=15432;Database=conflux_inventory_shard_0;Username=postgres;Password=postgres
+      InventorySharding__Shards__1__ConnectionString: Host=toxiproxy;Port=15432;Database=conflux_inventory_shard_1;Username=postgres;Password=postgres
+      InventorySharding__Shards__2__ConnectionString: Host=toxiproxy;Port=15432;Database=conflux_inventory_shard_2;Username=postgres;Password=postgres
+      InventorySharding__Shards__3__ConnectionString: Host=toxiproxy;Port=15432;Database=conflux_inventory_shard_3;Username=postgres;Password=postgres
+
+  order:
+    environment:
+      CheckoutSaga__BootstrapServers: toxiproxy:19092
+      KafkaRetry__BootstrapServers: toxiproxy:19092
+
+  fulfillment:
+    environment:
+      Kafka__BootstrapServers: toxiproxy:19092
+      KafkaRetry__BootstrapServers: toxiproxy:19092
+
+  catalog-outbox:
+    environment:
+      Kafka__BootstrapServers: toxiproxy:19092
+  catalog-projection:
+    environment:
+      Kafka__BootstrapServers: toxiproxy:19092
+      KafkaRetry__BootstrapServers: toxiproxy:19092
+  inventory-outbox:
+    environment:
+      Kafka__BootstrapServers: toxiproxy:19092
+  order-outbox:
+    environment:
+      Kafka__BootstrapServers: toxiproxy:19092
+  payment-outbox:
+    environment:
+      Kafka__BootstrapServers: toxiproxy:19092

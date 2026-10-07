@@ -1,0 +1,54 @@
+name: Conflux Benchmark
+
+on:
+  workflow_dispatch:
+    inputs:
+      requests:
+        description: Number of load-test requests
+        required: true
+        default: '10000'
+      concurrency:
+        description: Load-test concurrency
+        required: true
+        default: '64'
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet restore Conflux.slnx
+      - run: dotnet build Conflux.slnx -c Release --no-restore
+      - name: Start Conflux
+        run: docker compose -f deploy/docker/docker-compose.yml up -d --build
+      - name: Wait for gateway
+        run: |
+          for i in {1..60}; do curl -fsS http://localhost:8080/health && exit 0; sleep 2; done
+          docker compose -f deploy/docker/docker-compose.yml logs --no-color
+          exit 1
+      - name: Run microbenchmarks
+        run: dotnet run --project benchmarks/Conflux.Benchmarks -c Release --no-build
+      - name: Run HTTP load test
+        run: |
+          dotnet run --project load-tests/Conflux.LoadTests -c Release --no-build -- \
+            --base-url=http://localhost:8080 \
+            --path=/health \
+            --requests=${{ inputs.requests }} \
+            --concurrency=${{ inputs.concurrency }} \
+            --output-directory=artifacts/load-tests \
+            --output=manual.json
+      - name: Generate report
+        run: python scripts/benchmark/generate_report.py artifacts/load-tests/*.json --output artifacts/benchmark-report
+      - name: Upload benchmark artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-artifacts
+          path: |
+            BenchmarkDotNet.Artifacts/
+            artifacts/
+      - if: always()
+        run: docker compose -f deploy/docker/docker-compose.yml down -v

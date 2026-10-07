@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Sdk Name="Aspire.AppHost.Sdk" Version="13.6.0" />
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsAspireHost>true</IsAspireHost>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" />
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" />
+    <PackageReference Include="Aspire.Hosting.Redis" />
+    <PackageReference Include="Aspire.Hosting.Kafka" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Gateway\Conflux.Gateway\Conflux.Gateway.csproj" />
+    <ProjectReference Include="..\Services\Identity\Conflux.Identity\Conflux.Identity.csproj" />
+    <ProjectReference Include="..\Services\Catalog\Conflux.Catalog\Conflux.Catalog.csproj" />
+    <ProjectReference Include="..\Services\Inventory\Conflux.Inventory\Conflux.Inventory.csproj" />
+    <ProjectReference Include="..\Services\Order\Conflux.Order\Conflux.Order.csproj" />
+    <ProjectReference Include="..\Services\Payment\Conflux.Payment\Conflux.Payment.csproj" />
+    <ProjectReference Include="..\Services\Fulfillment\Conflux.Fulfillment\Conflux.Fulfillment.csproj" />
+    <ProjectReference Include="..\Workers\CatalogOutbox\Conflux.Catalog.OutboxPublisher\Conflux.Catalog.OutboxPublisher.csproj" />
+    <ProjectReference Include="..\Workers\CatalogProjection\Conflux.Catalog.ProjectionWorker\Conflux.Catalog.ProjectionWorker.csproj" />
+    <ProjectReference Include="..\Workers\InventoryOutbox\Conflux.Inventory.OutboxPublisher\Conflux.Inventory.OutboxPublisher.csproj" />
+    <ProjectReference Include="..\Workers\OrderOutbox\Conflux.Order.OutboxPublisher\Conflux.Order.OutboxPublisher.csproj" />
+    <ProjectReference Include="..\Workers\PaymentOutbox\Conflux.Payment.OutboxPublisher\Conflux.Payment.OutboxPublisher.csproj" />
+  </ItemGroup>
+</Project>

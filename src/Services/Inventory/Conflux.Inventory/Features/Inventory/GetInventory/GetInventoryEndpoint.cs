@@ -1,4 +1,4 @@
-using Conflux.Inventory.Infrastructure;
+using Conflux.Inventory.Infrastructure.Sharding;
 using Microsoft.EntityFrameworkCore;
 
 namespace Conflux.Inventory.Features.Inventory.GetInventory;
@@ -8,14 +8,9 @@ namespace Conflux.Inventory.Features.Inventory.GetInventory;
 /// </summary>
 public static class GetInventoryEndpoint
 {
-    /// <summary>
-    /// Maps the inventory retrieval endpoint to the application.
-    /// </summary>
-    /// <param name="endpoints">
-    /// The endpoint route builder used to register the HTTP endpoint.
-    /// </param>
-    public static void MapGetInventoryEndpoint(
-        this IEndpointRouteBuilder endpoints)
+    /// <summary>Maps the inventory retrieval endpoint.</summary>
+    /// <param name="endpoints">The endpoint route builder.</param>
+    public static void MapGetInventoryEndpoint(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapGet(
                 "/api/v1/inventory/items/{inventoryId:guid}",
@@ -26,36 +21,27 @@ public static class GetInventoryEndpoint
 
     private static async Task<IResult> HandleAsync(
         Guid inventoryId,
-        InventoryDbContext dbContext,
+        InventoryDbContextProvider dbContextProvider,
         CancellationToken cancellationToken)
     {
+        await using var dbContext = dbContextProvider.CreateForInventoryId(inventoryId);
         var inventoryItem = await dbContext.InventoryItems
             .AsNoTracking()
-            .SingleOrDefaultAsync(
-                item => item.Id == inventoryId,
-                cancellationToken);
+            .SingleOrDefaultAsync(item => item.Id == inventoryId, cancellationToken);
 
         if (inventoryItem is null)
         {
-            return Results.NotFound(
-                new
-                {
-                    error = "Inventory item was not found."
-                });
+            return Results.NotFound(new { error = "Inventory item was not found." });
         }
 
-        var response = new GetInventoryResponse
+        return Results.Ok(new GetInventoryResponse
         {
             InventoryId = inventoryItem.Id,
             Sku = inventoryItem.Sku,
-            AvailableQuantity =
-                inventoryItem.AvailableQuantity,
-            ReservedQuantity =
-                inventoryItem.ReservedQuantity,
+            AvailableQuantity = inventoryItem.AvailableQuantity,
+            ReservedQuantity = inventoryItem.ReservedQuantity,
             CreatedAt = inventoryItem.CreatedAt,
             UpdatedAt = inventoryItem.UpdatedAt
-        };
-
-        return Results.Ok(response);
+        });
     }
 }

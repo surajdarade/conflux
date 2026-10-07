@@ -308,6 +308,48 @@ public sealed class InventoryTransactionalOutboxTests :
             .Be(1);
     }
 
+
+    /// <summary>Verifies that releasing a reservation persists the release event atomically.</summary>
+    [Fact]
+    public async Task ReleaseAsync_PersistsReleaseOutboxMessage()
+    {
+        var inventoryItemId = Guid.NewGuid();
+        var reservationId = Guid.NewGuid();
+        const string sku = "CONFLUX-RELEASE-001";
+
+        await SeedInventoryItemAsync(inventoryItemId, sku, 20);
+
+        await using (var db = _fixture.CreateDbContext())
+        {
+            var service = new InventoryApplicationService(db);
+            var result = await service.ReserveAsync(
+                inventoryItemId, reservationId, 4, TestContext.Current.CancellationToken);
+            result.Status.Should().Be(ReserveInventoryResultStatus.Success);
+        }
+
+        await using (var db = _fixture.CreateDbContext())
+        {
+            var service = new InventoryApplicationService(db);
+            var result = await service.ReleaseAsync(
+                inventoryItemId, reservationId, TestContext.Current.CancellationToken);
+            result.Status.Should().Be(ReleaseInventoryResultStatus.Success);
+            result.AlreadyReleased.Should().BeFalse();
+        }
+
+        await using var verification = _fixture.CreateDbContext();
+        var message = await verification.OutboxMessages
+            .AsNoTracking()
+            .SingleAsync(
+                item => item.EventType == "inventory.reservation-released.v1" && item.CorrelationId == reservationId,
+                TestContext.Current.CancellationToken);
+
+        var released = JsonSerializer.Deserialize<InventoryReservationReleased>(message.Payload);
+        released.Should().NotBeNull();
+        released!.ReservationId.Should().Be(reservationId);
+        released.Sku.Should().Be(sku);
+        released.Quantity.Should().Be(4);
+    }
+
     private async Task SeedInventoryItemAsync(
         Guid inventoryItemId,
         string sku,

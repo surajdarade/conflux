@@ -1,0 +1,28 @@
+name: Conflux Chaos Validation
+
+on:
+  workflow_dispatch:
+
+jobs:
+  chaos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet restore Conflux.slnx
+      - run: dotnet build Conflux.slnx -c Release --no-restore
+      - name: Run automated chaos validation
+        run: ./scripts/chaos-run.sh
+      - name: Collect service logs
+        if: always()
+        run: docker compose -f deploy/docker/docker-compose.yml -f deploy/docker/docker-compose.chaos.yml logs --no-color > artifacts-chaos.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: chaos-artifacts
+          path: artifacts-chaos.log
+      - if: always()
+        run: docker compose -f deploy/docker/docker-compose.yml -f deploy/docker/docker-compose.chaos.yml down -v

@@ -76,6 +76,11 @@ public sealed class Order
     public string Currency { get; private set; } = null!;
 
     /// <summary>
+    /// Gets the payment identifier assigned by the Payment service.
+    /// </summary>
+    public Guid? PaymentId { get; private set; }
+
+    /// <summary>
     /// Gets the UTC timestamp at which the order was created.
     /// </summary>
     public DateTimeOffset CreatedAt { get; private set; }
@@ -146,6 +151,92 @@ public sealed class Order
         TransitionTo(
             OrderStatus.PaymentPending,
             OrderStatus.InventoryReserved);
+    }
+
+    /// <summary>
+    /// Records a payment authorization and moves the order into the payment-pending state.
+    /// </summary>
+    /// <param name="paymentId">The payment identifier.</param>
+    public void RecordPaymentAuthorization(Guid paymentId)
+    {
+        if (paymentId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "Payment ID cannot be empty.",
+                nameof(paymentId));
+        }
+
+        if (Status == OrderStatus.PaymentPending)
+        {
+            if (PaymentId != paymentId)
+            {
+                throw new InvalidOperationException(
+                    "The order is already associated with a different payment.");
+            }
+
+            return;
+        }
+
+        if (Status != OrderStatus.InventoryReserved)
+        {
+            throw new InvalidOperationException(
+                $"Order cannot record payment authorization from {Status} state.");
+        }
+
+        PaymentId = paymentId;
+        MarkPaymentPending();
+    }
+
+    /// <summary>
+    /// Marks the order as successfully confirmed after payment capture.
+    /// </summary>
+    public void ConfirmPaymentCapture(Guid paymentId)
+    {
+        if (paymentId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "Payment ID cannot be empty.",
+                nameof(paymentId));
+        }
+
+        if (PaymentId != paymentId)
+        {
+            throw new InvalidOperationException(
+                "The captured payment does not belong to this order.");
+        }
+
+        if (Status == OrderStatus.Confirmed)
+        {
+            return;
+        }
+
+        Confirm();
+    }
+
+    /// <summary>
+    /// Marks the order cancelled after a payment authorization is voided.
+    /// </summary>
+    public void CancelAfterPaymentVoid(Guid paymentId)
+    {
+        if (paymentId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "Payment ID cannot be empty.",
+                nameof(paymentId));
+        }
+
+        if (PaymentId != paymentId)
+        {
+            throw new InvalidOperationException(
+                "The voided payment does not belong to this order.");
+        }
+
+        if (Status == OrderStatus.Cancelled)
+        {
+            return;
+        }
+
+        Cancel();
     }
 
     /// <summary>

@@ -1,4 +1,5 @@
 using Conflux.Catalog.Infrastructure;
+using Conflux.Catalog.ReadModel;
 using Microsoft.EntityFrameworkCore;
 
 namespace Conflux.Catalog.Features.Products.GetProduct;
@@ -27,34 +28,32 @@ public static class GetProductEndpoint
     private static async Task<IResult> HandleAsync(
         Guid productId,
         CatalogDbContext dbContext,
+        ProductReadCache cache,
         CancellationToken cancellationToken)
     {
-        var product = await dbContext.Products
-            .AsNoTracking()
-            .SingleOrDefaultAsync(
-                candidate => candidate.Id == productId,
-                cancellationToken);
+        var cachedProduct = await cache.GetOrCreateAsync(
+            productId,
+            async token => await dbContext.ProductReadModels
+                .AsNoTracking()
+                .SingleOrDefaultAsync(candidate => candidate.ProductId == productId, token),
+            cancellationToken);
 
-        if (product is null)
+        if (cachedProduct is null)
         {
-            return Results.NotFound(
-                new
-                {
-                    error = "Product was not found."
-                });
+            return Results.NotFound(new { error = "Product was not found." });
         }
 
         var response = new GetProductResponse
         {
-            ProductId = product.Id,
-            Sku = product.Sku,
-            Name = product.Name,
-            Description = product.Description,
-            Price = product.Price,
-            Currency = product.Currency,
-            IsActive = product.IsActive,
-            CreatedAt = product.CreatedAt,
-            UpdatedAt = product.UpdatedAt
+            ProductId = cachedProduct.ProductId,
+            Sku = cachedProduct.Sku,
+            Name = cachedProduct.Name,
+            Description = cachedProduct.Description,
+            Price = cachedProduct.Price,
+            Currency = cachedProduct.Currency,
+            IsActive = cachedProduct.IsActive,
+            CreatedAt = cachedProduct.CreatedAt,
+            UpdatedAt = cachedProduct.UpdatedAt
         };
 
         return Results.Ok(response);

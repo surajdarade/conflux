@@ -1,6 +1,4 @@
-using Conflux.Inventory.Domain;
-using Conflux.Inventory.Infrastructure;
-using Microsoft.EntityFrameworkCore;
+using Conflux.Inventory.Application.Inventory;
 
 namespace Conflux.Inventory.Features.Inventory.CreateInventory;
 
@@ -12,11 +10,8 @@ public static class CreateInventoryEndpoint
     /// <summary>
     /// Maps the inventory creation endpoint to the application.
     /// </summary>
-    /// <param name="endpoints">
-    /// The endpoint route builder used to register the HTTP endpoint.
-    /// </param>
-    public static void MapCreateInventoryEndpoint(
-        this IEndpointRouteBuilder endpoints)
+    /// <param name="endpoints">The endpoint route builder.</param>
+    public static void MapCreateInventoryEndpoint(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapPost(
                 "/api/v1/inventory/items",
@@ -27,64 +22,31 @@ public static class CreateInventoryEndpoint
 
     private static async Task<IResult> HandleAsync(
         CreateInventoryRequest request,
-        InventoryDbContext dbContext,
+        InventoryApplicationService inventoryService,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(request.Sku))
+        var result = await inventoryService.CreateAsync(
+            request.Sku,
+            request.AvailableQuantity,
+            cancellationToken);
+
+        if (!result.Succeeded)
         {
-            return Results.BadRequest(
-                new
-                {
-                    error = "SKU is required."
-                });
+            return result.IsConflict
+                ? Results.Conflict(new { error = result.Error })
+                : Results.BadRequest(new { error = result.Error });
         }
-
-        if (request.AvailableQuantity < 0)
-        {
-            return Results.BadRequest(
-                new
-                {
-                    error = "Available quantity cannot be negative."
-                });
-        }
-
-        var sku = request.Sku.Trim().ToUpperInvariant();
-
-        var exists = await dbContext.InventoryItems
-            .AnyAsync(
-                item => item.Sku == sku,
-                cancellationToken);
-
-        if (exists)
-        {
-            return Results.Conflict(
-                new
-                {
-                    error = "Inventory already exists for this SKU."
-                });
-        }
-
-        var inventoryItem = new InventoryItem(
-            Guid.NewGuid(),
-            sku,
-            request.AvailableQuantity);
-
-        dbContext.InventoryItems.Add(inventoryItem);
-
-        await dbContext.SaveChangesAsync(cancellationToken);
 
         var response = new CreateInventoryResponse
         {
-            InventoryId = inventoryItem.Id,
-            Sku = inventoryItem.Sku,
-            AvailableQuantity =
-                inventoryItem.AvailableQuantity,
-            ReservedQuantity =
-                inventoryItem.ReservedQuantity
+            InventoryId = result.InventoryId,
+            Sku = result.Sku,
+            AvailableQuantity = result.AvailableQuantity,
+            ReservedQuantity = result.ReservedQuantity
         };
 
         return Results.Created(
-            $"/api/v1/inventory/items/{inventoryItem.Id}",
+            $"/api/v1/inventory/items/{result.InventoryId}",
             response);
     }
 }

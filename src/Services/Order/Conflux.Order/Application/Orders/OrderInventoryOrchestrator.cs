@@ -1,5 +1,8 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
+using Conflux.Outbox;
+using Conflux.Contracts.Events;
 using Conflux.Order.Clients.Inventory;
 using Conflux.Order.Domain;
 using Conflux.Order.Infrastructure;
@@ -7,9 +10,7 @@ using Grpc.Core;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using OrderEntity = Conflux.Order.Domain.Order;
-
 namespace Conflux.Order.Application.Orders;
-
 /// <summary>
 /// Coordinates durable Order-side inventory reservations with the
 /// Inventory service.
@@ -18,8 +19,13 @@ namespace Conflux.Order.Application.Orders;
 /// The orchestrator persists reservation state locally and invokes the
 /// Inventory service using deterministic reservation identifiers so retries
 /// can be handled idempotently.
+///
+/// Order finalization uses a database-conditional state transition so
+/// concurrent requests can safely operate across multiple Order service
+/// instances without relying on process-local synchronization.
 /// </remarks>
-public sealed class OrderInventoryOrchestrator {
+public sealed class OrderInventoryOrchestrator
+{
     /// <summary>
     /// Namespace prefix used when deriving deterministic reservation identifiers.
     /// </summary>
@@ -27,15 +33,19 @@ public sealed class OrderInventoryOrchestrator {
         "conflux:order-inventory-reservation:v1";
 
     /// <summary>
+    /// Namespace prefix used when deriving deterministic Order inventory
+    /// reservation event identifiers.
+    /// </summary>
+    private const string InventoryReservedEventNamespace =
+        "conflux:order-inventory-reserved:v1";
+    /// <summary>
     /// The order database context.
     /// </summary>
     private readonly OrderDbContext _dbContext;
-
     /// <summary>
     /// The inventory service client.
     /// </summary>
     private readonly IInventoryClient _inventoryClient;
-
     /// <summary>
     /// Initializes a new instance of the <see cref="OrderInventoryOrchestrator"/> class.
     /// </summary>
@@ -43,11 +53,11 @@ public sealed class OrderInventoryOrchestrator {
     /// <param name="inventoryClient">The inventory service client.</param>
     public OrderInventoryOrchestrator(
         OrderDbContext dbContext,
-        IInventoryClient inventoryClient) {
+        IInventoryClient inventoryClient)
+    {
         _dbContext = dbContext;
         _inventoryClient = inventoryClient;
     }
-
     /// <summary>
     /// Reserves inventory for all items in the specified order.
     /// </summary>
@@ -65,51 +75,52 @@ public sealed class OrderInventoryOrchestrator {
     public async Task<OrderInventoryOrchestrationResult>
         ReserveOrderInventoryAsync(
             Guid orderId,
-            CancellationToken cancellationToken) {
-        if (orderId == Guid.Empty) {
+            CancellationToken cancellationToken)
+    {
+        if (orderId == Guid.Empty)
+        {
             throw new ArgumentException(
                 "Order ID cannot be empty.",
                 nameof(orderId));
         }
-
         var order = await _dbContext.Orders
             .Include(candidate => candidate.Items)
             .SingleOrDefaultAsync(
                 candidate => candidate.Id == orderId,
                 cancellationToken);
-
-        if (order is null) {
+        if (order is null)
+        {
             return OrderInventoryOrchestrationResult.NotFound(
                 "Order was not found.");
         }
-
-        if (order.Status == OrderStatus.InventoryReserved) {
+        if (order.Status == OrderStatus.InventoryReserved)
+        {
             return OrderInventoryOrchestrationResult.Success();
         }
-
-        if (order.Status != OrderStatus.Pending) {
+        if (order.Status != OrderStatus.Pending)
+        {
             return OrderInventoryOrchestrationResult.InvalidState(
                 $"Order in {order.Status} state cannot reserve inventory.");
         }
-
         var reservations =
             new List<OrderInventoryReservation>();
-
-        try {
-            foreach (var orderItem in order.Items) {
+        try
+        {
+            foreach (var orderItem in order.Items)
+            {
                 var reservation =
                     await GetOrCreateReservationAsync(
                         orderItem,
                         cancellationToken);
-
                 if (reservation.Status ==
-                    OrderInventoryReservationStatus.Reserved) {
+                    OrderInventoryReservationStatus.Reserved)
+                {
                     reservations.Add(reservation);
                     continue;
                 }
-
                 if (reservation.Status !=
-                    OrderInventoryReservationStatus.Pending) {
+                    OrderInventoryReservationStatus.Pending)
+                {
                     return await FailOrderAsync(
                         order,
                         reservations,
@@ -117,29 +128,40 @@ public sealed class OrderInventoryOrchestrator {
                         "An order inventory reservation is in an invalid state.",
                         cancellationToken);
                 }
-
                 await _inventoryClient.ReserveAsync(
                     reservation.InventoryItemId,
                     reservation.ReservationId,
                     reservation.Quantity,
                     cancellationToken);
-
                 reservation.MarkReserved();
-
                 await _dbContext.SaveChangesAsync(
                     cancellationToken);
-
                 reservations.Add(reservation);
             }
-
-            order.MarkInventoryReserved();
-
-            await _dbContext.SaveChangesAsync(
-                cancellationToken);
-
-            return OrderInventoryOrchestrationResult.Success();
+            var finalizationResult =
+                await FinalizeOrderInventoryReservationAsync(
+                    order,
+                    cancellationToken);
+            if (finalizationResult.Status ==
+                OrderInventoryOrchestrationResultStatus.Success)
+            {
+                return finalizationResult;
+            }
+            if (finalizationResult.Status ==
+                OrderInventoryOrchestrationResultStatus.InvalidState &&
+                order.Status == OrderStatus.Failed)
+            {
+                return await CompensateFailedFinalizationAsync(
+                    order,
+                    reservations,
+                    finalizationResult.Error ??
+                    "Order finalization failed.",
+                    cancellationToken);
+            }
+            return finalizationResult;
         }
-        catch (RpcException exception) {
+        catch (RpcException exception)
+        {
             return await HandleInventoryFailureAsync(
                 order,
                 reservations,
@@ -147,10 +169,12 @@ public sealed class OrderInventoryOrchestrator {
                 cancellationToken);
         }
         catch (OperationCanceledException)
-            when (cancellationToken.IsCancellationRequested) {
+            when (cancellationToken.IsCancellationRequested)
+        {
             throw;
         }
-        catch (Exception exception) {
+        catch (Exception exception)
+        {
             return await HandleUnexpectedFailureAsync(
                 order,
                 reservations,
@@ -158,7 +182,144 @@ public sealed class OrderInventoryOrchestrator {
                 cancellationToken);
         }
     }
+    /// <summary>
+    /// Attempts to atomically transition the order from Pending to
+    /// InventoryReserved.
+    /// </summary>
+    /// <remarks>
+    /// The conditional database update is the concurrency boundary for
+    /// concurrent inventory reservation attempts. Exactly one request can
+    /// update a Pending order. Requests that observe zero affected rows
+    /// reload the order and treat an already finalized order as an
+    /// idempotent success.
+    /// </remarks>
+    /// <param name="order">The tracked order being finalized.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>
+    /// An <see cref="OrderInventoryOrchestrationResult"/> describing the
+    /// finalization outcome.
+    /// </returns>
+    private async Task<OrderInventoryOrchestrationResult>
+        FinalizeOrderInventoryReservationAsync(
+            OrderEntity order,
+            CancellationToken cancellationToken)
+    {
+        await using var transaction =
+            await _dbContext.Database.BeginTransactionAsync(
+                cancellationToken);
 
+        var updatedAt = DateTimeOffset.UtcNow;
+
+        var affectedRows = await _dbContext.Orders
+            .Where(candidate =>
+                candidate.Id == order.Id &&
+                candidate.Status == OrderStatus.Pending)
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(
+                        candidate => candidate.Status,
+                        OrderStatus.InventoryReserved)
+                    .SetProperty(
+                        candidate => candidate.UpdatedAt,
+                        updatedAt),
+                cancellationToken);
+
+        if (affectedRows == 1)
+        {
+            var occurredAt = DateTimeOffset.UtcNow;
+
+            var integrationEvent = new OrderInventoryReserved
+            {
+                EventId = CreateDeterministicEventId(order.Id),
+                OccurredAt = occurredAt,
+                CorrelationId = order.Id,
+                CausationId = null,
+                OrderId = order.Id,
+                CustomerId = order.CustomerId,
+                TotalAmount = order.TotalAmount,
+                Currency = order.Currency
+            };
+
+            var outboxMessage = new OutboxMessage(
+                integrationEvent.EventId,
+                occurredAt,
+                "order.inventory-reserved.v1",
+                JsonSerializer.Serialize(integrationEvent),
+                integrationEvent.CorrelationId,
+                integrationEvent.CausationId);
+
+            _dbContext.OutboxMessages.Add(outboxMessage);
+
+            await _dbContext.SaveChangesAsync(
+                cancellationToken);
+
+            await transaction.CommitAsync(
+                cancellationToken);
+
+            await _dbContext.Entry(order).ReloadAsync(
+                cancellationToken);
+
+            return OrderInventoryOrchestrationResult.Success();
+        }
+
+        await transaction.RollbackAsync(
+            cancellationToken);
+
+        await _dbContext.Entry(order).ReloadAsync(
+            cancellationToken);
+
+        if (order.Status == OrderStatus.InventoryReserved)
+        {
+            return OrderInventoryOrchestrationResult.Success();
+        }
+
+        if (order.Status == OrderStatus.Failed)
+        {
+            return OrderInventoryOrchestrationResult.InvalidState(
+                "The order was finalized as failed by another concurrent operation.");
+        }
+
+        if (order.Status == OrderStatus.Cancelled)
+        {
+            return OrderInventoryOrchestrationResult.InvalidState(
+                "The order was cancelled by another concurrent operation.");
+        }
+
+        return OrderInventoryOrchestrationResult.InvalidState(
+            $"Order in {order.Status} state cannot be finalized after inventory reservation.");
+    }
+
+    /// <summary>
+    /// Compensates reservations when another concurrent operation has already
+    /// failed the order.
+    /// </summary>
+    /// <param name="order">The order that is already failed.</param>
+    /// <param name="reservations">Reservations created by this operation.</param>
+    /// <param name="error">The failure message.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>
+    /// An <see cref="OrderInventoryOrchestrationResult"/> describing the outcome.
+    /// </returns>
+    private async Task<OrderInventoryOrchestrationResult>
+        CompensateFailedFinalizationAsync(
+            OrderEntity order,
+            IReadOnlyCollection<OrderInventoryReservation> reservations,
+            string error,
+            CancellationToken cancellationToken)
+    {
+        var compensationResult =
+            await CompensateAsync(
+                reservations,
+                cancellationToken);
+        if (!compensationResult.Succeeded)
+        {
+            return OrderInventoryOrchestrationResult.CompensationFailed(
+                error,
+                StatusCode.FailedPrecondition,
+                compensationResult.Error);
+        }
+        return OrderInventoryOrchestrationResult.Failed(error);
+    }
     /// <summary>
     /// Gets the existing reservation for an order item or creates a new one
     /// after resolving the inventory item by SKU.
@@ -169,7 +330,8 @@ public sealed class OrderInventoryOrchestrator {
     private async Task<OrderInventoryReservation>
         GetOrCreateReservationAsync(
             OrderItem orderItem,
-            CancellationToken cancellationToken) {
+            CancellationToken cancellationToken)
+    {
         var existingReservation =
             await _dbContext.OrderInventoryReservations
                 .SingleOrDefaultAsync(
@@ -177,21 +339,18 @@ public sealed class OrderInventoryOrchestrator {
                         reservation.OrderItemId ==
                         orderItem.Id,
                     cancellationToken);
-
-        if (existingReservation is not null) {
+        if (existingReservation is not null)
+        {
             return existingReservation;
         }
-
         var inventory =
             await _inventoryClient.GetBySkuAsync(
                 orderItem.Sku,
                 cancellationToken);
-
         var reservationId =
             CreateDeterministicReservationId(
                 orderItem.OrderId,
                 orderItem.Id);
-
         var reservation =
             new OrderInventoryReservation(
                 Guid.NewGuid(),
@@ -199,21 +358,19 @@ public sealed class OrderInventoryOrchestrator {
                 inventory.InventoryItemId,
                 reservationId,
                 orderItem.Quantity);
-
         _dbContext.OrderInventoryReservations.Add(
             reservation);
-
-        try {
+        try
+        {
             await _dbContext.SaveChangesAsync(
                 cancellationToken);
-
             return reservation;
         }
         catch (DbUpdateException exception)
-            when (IsUniqueConstraintViolation(exception)) {
+            when (IsUniqueConstraintViolation(exception))
+        {
             _dbContext.Entry(reservation).State =
                 EntityState.Detached;
-
             var concurrentReservation =
                 await _dbContext.OrderInventoryReservations
                     .SingleOrDefaultAsync(
@@ -221,15 +378,13 @@ public sealed class OrderInventoryOrchestrator {
                             existing.OrderItemId ==
                             orderItem.Id,
                         cancellationToken);
-
-            if (concurrentReservation is null) {
+            if (concurrentReservation is null)
+            {
                 throw;
             }
-
             return concurrentReservation;
         }
     }
-
     /// <summary>
     /// Handles an inventory RPC failure by compensating previously reserved
     /// inventory and marking the order as failed.
@@ -246,29 +401,27 @@ public sealed class OrderInventoryOrchestrator {
             OrderEntity order,
             IReadOnlyCollection<OrderInventoryReservation> reservations,
             RpcException exception,
-            CancellationToken cancellationToken) {
+            CancellationToken cancellationToken)
+    {
         var compensationResult =
             await CompensateAsync(
                 reservations,
                 cancellationToken);
-
-        if (!compensationResult.Succeeded) {
+        if (!compensationResult.Succeeded)
+        {
             return OrderInventoryOrchestrationResult.CompensationFailed(
                 "Inventory reservation failed and compensation could not be completed.",
                 exception.StatusCode,
                 compensationResult.Error);
         }
-
-        if (order.Status != OrderStatus.Failed) {
+        if (order.Status != OrderStatus.Failed)
+        {
             order.Fail();
         }
-
         await _dbContext.SaveChangesAsync(
             cancellationToken);
-
         return MapInventoryFailure(exception);
     }
-
     /// <summary>
     /// Handles an unexpected failure by compensating previously reserved
     /// inventory and marking the order as failed.
@@ -285,31 +438,29 @@ public sealed class OrderInventoryOrchestrator {
             OrderEntity order,
             IReadOnlyCollection<OrderInventoryReservation> reservations,
             Exception exception,
-            CancellationToken cancellationToken) {
+            CancellationToken cancellationToken)
+    {
         var compensationResult =
             await CompensateAsync(
                 reservations,
                 cancellationToken);
-
-        if (!compensationResult.Succeeded) {
+        if (!compensationResult.Succeeded)
+        {
             return OrderInventoryOrchestrationResult.CompensationFailed(
                 "An unexpected inventory orchestration failure occurred and compensation could not be completed.",
                 StatusCode.Internal,
                 compensationResult.Error);
         }
-
-        if (order.Status != OrderStatus.Failed) {
+        if (order.Status != OrderStatus.Failed)
+        {
             order.Fail();
         }
-
         await _dbContext.SaveChangesAsync(
             cancellationToken);
-
         return OrderInventoryOrchestrationResult.Failed(
             "Inventory orchestration failed.",
             exception.Message);
     }
-
     /// <summary>
     /// Fails the order and compensates all reservations associated with it.
     /// </summary>
@@ -327,105 +478,107 @@ public sealed class OrderInventoryOrchestrator {
             IReadOnlyCollection<OrderInventoryReservation> reservations,
             OrderInventoryReservation failedReservation,
             string error,
-            CancellationToken cancellationToken) {
+            CancellationToken cancellationToken)
+    {
         var allReservations =
             reservations
                 .Append(failedReservation)
                 .DistinctBy(reservation => reservation.Id)
                 .ToList();
-
         var compensationResult =
             await CompensateAsync(
                 allReservations,
                 cancellationToken);
-
-        if (!compensationResult.Succeeded) {
+        if (!compensationResult.Succeeded)
+        {
             return OrderInventoryOrchestrationResult.CompensationFailed(
                 error,
                 StatusCode.FailedPrecondition,
                 compensationResult.Error);
         }
-
         if (failedReservation.Status ==
-            OrderInventoryReservationStatus.Pending) {
+            OrderInventoryReservationStatus.Pending)
+        {
             failedReservation.MarkFailed();
         }
-
-        if (order.Status != OrderStatus.Failed) {
+        if (order.Status != OrderStatus.Failed)
+        {
             order.Fail();
         }
-
         await _dbContext.SaveChangesAsync(
             cancellationToken);
-
         return OrderInventoryOrchestrationResult.Failed(error);
     }
-
     /// <summary>
     /// Attempts to release inventory reservations and updates their local states.
     /// </summary>
     /// <param name="reservations">The reservations to compensate.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
-    /// <returns>A <see cref="CompensationResult"/> describing the compensation outcome.</returns>
+    /// <returns>
+    /// A <see cref="CompensationResult"/> describing the compensation outcome.
+    /// </returns>
     private async Task<CompensationResult>
         CompensateAsync(
             IReadOnlyCollection<OrderInventoryReservation> reservations,
-            CancellationToken cancellationToken) {
+            CancellationToken cancellationToken)
+    {
         var errors = new List<string>();
-
-        foreach (var reservation in reservations) {
+        foreach (var reservation in reservations)
+        {
             if (reservation.Status ==
                 OrderInventoryReservationStatus.Failed ||
                 reservation.Status ==
-                OrderInventoryReservationStatus.Released) {
+                OrderInventoryReservationStatus.Released)
+            {
                 continue;
             }
-
-            try {
+            try
+            {
                 await _inventoryClient.ReleaseAsync(
                     reservation.InventoryItemId,
                     reservation.ReservationId,
                     cancellationToken);
-
                 if (reservation.Status ==
-                    OrderInventoryReservationStatus.Reserved) {
+                    OrderInventoryReservationStatus.Reserved)
+                {
                     reservation.MarkReleased();
                 }
                 else if (reservation.Status ==
-                    OrderInventoryReservationStatus.Pending) {
+                         OrderInventoryReservationStatus.Pending)
+                {
                     reservation.MarkFailed();
                 }
-
                 await _dbContext.SaveChangesAsync(
                     cancellationToken);
             }
             catch (RpcException exception)
-                when (exception.StatusCode == StatusCode.NotFound) {
+                when (exception.StatusCode == StatusCode.NotFound)
+            {
                 if (reservation.Status ==
-                    OrderInventoryReservationStatus.Pending) {
+                    OrderInventoryReservationStatus.Pending)
+                {
                     reservation.MarkFailed();
-
                     await _dbContext.SaveChangesAsync(
                         cancellationToken);
                 }
                 else if (reservation.Status ==
-                    OrderInventoryReservationStatus.Reserved) {
+                         OrderInventoryReservationStatus.Reserved)
+                {
                     errors.Add(
                         $"Reservation {reservation.ReservationId} was marked reserved locally but was not found by Inventory during compensation.");
                 }
             }
-            catch (Exception exception) {
+            catch (Exception exception)
+            {
                 errors.Add(
                     $"Failed to compensate reservation {reservation.ReservationId}: {exception.Message}");
             }
         }
-
         return errors.Count == 0
             ? CompensationResult.Success()
             : CompensationResult.Failure(
                 string.Join(" ", errors));
     }
-
     /// <summary>
     /// Maps an inventory RPC exception to an orchestration result.
     /// </summary>
@@ -433,32 +586,28 @@ public sealed class OrderInventoryOrchestrator {
     /// <returns>The mapped orchestration result.</returns>
     private static OrderInventoryOrchestrationResult
         MapInventoryFailure(
-            RpcException exception) {
+            RpcException exception)
+    {
         return exception.StatusCode switch
         {
             StatusCode.NotFound =>
                 OrderInventoryOrchestrationResult.InventoryNotFound(
                     exception.Status.Detail),
-
             StatusCode.ResourceExhausted =>
                 OrderInventoryOrchestrationResult.InventoryUnavailable(
                     exception.Status.Detail),
-
             StatusCode.AlreadyExists =>
                 OrderInventoryOrchestrationResult.Conflict(
                     exception.Status.Detail),
-
             StatusCode.InvalidArgument =>
                 OrderInventoryOrchestrationResult.Invalid(
                     exception.Status.Detail),
-
             _ =>
                 OrderInventoryOrchestrationResult.Failed(
                     "Inventory service failed while processing the inventory operation.",
                     exception.Status.Detail)
         };
     }
-
     /// <summary>
     /// Determines whether a database update exception represents a PostgreSQL
     /// unique constraint violation.
@@ -469,22 +618,24 @@ public sealed class OrderInventoryOrchestrator {
     /// otherwise, <see langword="false"/>.
     /// </returns>
     private static bool IsUniqueConstraintViolation(
-        DbUpdateException exception) {
+        DbUpdateException exception)
+    {
         return exception.InnerException is PostgresException
         {
             SqlState: PostgresErrorCodes.UniqueViolation
         };
     }
-
     /// <summary>
-    /// Creates a deterministic reservation identifier from the order and order item identifiers.
+    /// Creates a deterministic reservation identifier from the order and
+    /// order item identifiers.
     /// </summary>
     /// <param name="orderId">The order identifier.</param>
     /// <param name="orderItemId">The order item identifier.</param>
     /// <returns>A deterministic reservation identifier.</returns>
     private static Guid CreateDeterministicReservationId(
         Guid orderId,
-        Guid orderItemId) {
+        Guid orderItemId)
+    {
         var source =
             string.Concat(
                 ReservationNamespace,
@@ -492,6 +643,24 @@ public sealed class OrderInventoryOrchestrator {
                 orderId.ToString("N"),
                 ":",
                 orderItemId.ToString("N"));
+        var hash =
+            SHA256.HashData(
+                Encoding.UTF8.GetBytes(source));
+        return new Guid(hash.AsSpan(0, 16));
+    }
+    /// <summary>
+    /// Creates a deterministic integration event identifier from the order identifier.
+    /// </summary>
+    /// <param name="orderId">The order identifier.</param>
+    /// <returns>A deterministic event identifier.</returns>
+    private static Guid CreateDeterministicEventId(
+        Guid orderId)
+    {
+        var source =
+            string.Concat(
+                InventoryReservedEventNamespace,
+                ":",
+                orderId.ToString("N"));
 
         var hash =
             SHA256.HashData(
@@ -503,35 +672,35 @@ public sealed class OrderInventoryOrchestrator {
     /// <summary>
     /// Represents the outcome of a compensation attempt.
     /// </summary>
-    private sealed record CompensationResult {
+    private sealed record CompensationResult
+    {
         /// <summary>
         /// Gets a value indicating whether compensation succeeded.
         /// </summary>
         public bool Succeeded { get; private init; }
-
         /// <summary>
         /// Gets the error details when compensation fails.
         /// </summary>
         public string? Error { get; private init; }
-
         /// <summary>
         /// Creates a successful compensation result.
         /// </summary>
         /// <returns>A successful compensation result.</returns>
-        public static CompensationResult Success() {
+        public static CompensationResult Success()
+        {
             return new CompensationResult
             {
                 Succeeded = true
             };
         }
-
         /// <summary>
         /// Creates a failed compensation result.
         /// </summary>
         /// <param name="error">The error details.</param>
         /// <returns>A failed compensation result.</returns>
         public static CompensationResult Failure(
-            string error) {
+            string error)
+        {
             return new CompensationResult
             {
                 Succeeded = false,
@@ -540,49 +709,49 @@ public sealed class OrderInventoryOrchestrator {
         }
     }
 }
-
 /// <summary>
 /// Represents the result of Order-side inventory orchestration.
 /// </summary>
-public sealed record OrderInventoryOrchestrationResult {
+public sealed record OrderInventoryOrchestrationResult
+{
     /// <summary>
     /// Initializes a new instance of the <see cref="OrderInventoryOrchestrationResult"/> record.
     /// </summary>
-    private OrderInventoryOrchestrationResult() {
+    private OrderInventoryOrchestrationResult()
+    {
     }
-
     /// <summary>
     /// Gets the orchestration status.
     /// </summary>
-    public OrderInventoryOrchestrationResultStatus Status {
+    public OrderInventoryOrchestrationResultStatus Status
+    {
         get;
         private init;
     }
-
     /// <summary>
     /// Gets the error message associated with the result, if any.
     /// </summary>
-    public string? Error {
+    public string? Error
+    {
         get;
         private init;
     }
-
     /// <summary>
     /// Gets optional detail associated with the result.
     /// </summary>
-    public string? Detail {
+    public string? Detail
+    {
         get;
         private init;
     }
-
     /// <summary>
     /// Gets the inventory status code associated with a failure, if any.
     /// </summary>
-    public StatusCode? InventoryStatusCode {
+    public StatusCode? InventoryStatusCode
+    {
         get;
         private init;
     }
-
     /// <summary>
     /// Creates a successful orchestration result.
     /// </summary>
@@ -593,7 +762,6 @@ public sealed record OrderInventoryOrchestrationResult {
             Status =
                 OrderInventoryOrchestrationResultStatus.Success
         };
-
     /// <summary>
     /// Creates a not-found orchestration result.
     /// </summary>
@@ -607,7 +775,6 @@ public sealed record OrderInventoryOrchestrationResult {
                 OrderInventoryOrchestrationResultStatus.NotFound,
             Error = error
         };
-
     /// <summary>
     /// Creates an invalid-state orchestration result.
     /// </summary>
@@ -621,7 +788,6 @@ public sealed record OrderInventoryOrchestrationResult {
                 OrderInventoryOrchestrationResultStatus.InvalidState,
             Error = error
         };
-
     /// <summary>
     /// Creates an invalid orchestration result.
     /// </summary>
@@ -635,7 +801,6 @@ public sealed record OrderInventoryOrchestrationResult {
                 OrderInventoryOrchestrationResultStatus.Invalid,
             Error = error
         };
-
     /// <summary>
     /// Creates an inventory-not-found orchestration result.
     /// </summary>
@@ -649,7 +814,6 @@ public sealed record OrderInventoryOrchestrationResult {
                 OrderInventoryOrchestrationResultStatus.InventoryNotFound,
             Error = error
         };
-
     /// <summary>
     /// Creates an inventory-unavailable orchestration result.
     /// </summary>
@@ -663,7 +827,6 @@ public sealed record OrderInventoryOrchestrationResult {
                 OrderInventoryOrchestrationResultStatus.InventoryUnavailable,
             Error = error
         };
-
     /// <summary>
     /// Creates a conflict orchestration result.
     /// </summary>
@@ -677,7 +840,6 @@ public sealed record OrderInventoryOrchestrationResult {
                 OrderInventoryOrchestrationResultStatus.Conflict,
             Error = error
         };
-
     /// <summary>
     /// Creates a failed orchestration result.
     /// </summary>
@@ -694,7 +856,6 @@ public sealed record OrderInventoryOrchestrationResult {
             Error = error,
             Detail = detail
         };
-
     /// <summary>
     /// Creates a compensation-failed orchestration result.
     /// </summary>
@@ -715,51 +876,43 @@ public sealed record OrderInventoryOrchestrationResult {
             InventoryStatusCode = statusCode
         };
 }
-
 /// <summary>
 /// Represents the possible outcomes of inventory orchestration.
 /// </summary>
-public enum OrderInventoryOrchestrationResultStatus {
+public enum OrderInventoryOrchestrationResultStatus
+{
     /// <summary>
     /// Inventory was reserved successfully.
     /// </summary>
     Success = 0,
-
     /// <summary>
     /// The order was not found.
     /// </summary>
     NotFound = 1,
-
     /// <summary>
     /// The order is not in a state that permits inventory reservation.
     /// </summary>
     InvalidState = 2,
-
     /// <summary>
     /// The inventory request was invalid.
     /// </summary>
     Invalid = 3,
-
     /// <summary>
     /// The inventory item was not found.
     /// </summary>
     InventoryNotFound = 4,
-
     /// <summary>
     /// The inventory is unavailable.
     /// </summary>
     InventoryUnavailable = 5,
-
     /// <summary>
     /// The inventory operation conflicted with existing state.
     /// </summary>
     Conflict = 6,
-
     /// <summary>
     /// Inventory orchestration failed.
     /// </summary>
     Failed = 7,
-
     /// <summary>
     /// Inventory orchestration failed and compensation could not be completed.
     /// </summary>

@@ -1,7 +1,11 @@
 <Solution>
-  <Folder Name="/benchmarks/" />
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/Conflux.Benchmarks/Conflux.Benchmarks.csproj" />
+  </Folder>
   <Folder Name="/deploy/" />
-  <Folder Name="/load-tests/" />
+  <Folder Name="/load-tests/">
+    <Project Path="load-tests/Conflux.LoadTests/Conflux.LoadTests.csproj" />
+  </Folder>
   <Folder Name="/Solution Items/">
     <File Path="Directory.Build.props" />
     <File Path="Directory.Packages.props" />
@@ -9,7 +13,13 @@
     <File Path="NuGet.Config" />
   </Folder>
   <Folder Name="/src/" />
+  <Folder Name="/src/AppHost/">
+    <Project Path="src/AppHost/Conflux.AppHost.csproj" />
+  </Folder>
   <Folder Name="/src/BuildingBlocks/">
+    <Project Path="src/BuildingBlocks/Conflux.Observability/Conflux.Observability.csproj" />
+    <Project Path="src/BuildingBlocks/Conflux.Inbox/Conflux.Inbox.csproj" />
+    <Project Path="src/BuildingBlocks/Conflux.Kafka/Conflux.Kafka.csproj" />
     <Project Path="src/BuildingBlocks/Conflux.Contracts/Conflux.Contracts.csproj" />
     <Project Path="src/BuildingBlocks/Conflux.Outbox/Conflux.Outbox.csproj" />
   </Folder>
@@ -17,6 +27,9 @@
     <Project Path="src/Gateway/Conflux.Gateway/Conflux.Gateway.csproj" />
   </Folder>
   <Folder Name="/src/Services/" />
+  <Folder Name="/src/Services/Fulfillment/">
+    <Project Path="src/Services/Fulfillment/Conflux.Fulfillment/Conflux.Fulfillment.csproj" />
+  </Folder>
   <Folder Name="/src/Services/Catalog/">
     <Project Path="src/Services/Catalog/Conflux.Catalog/Conflux.Catalog.csproj" />
   </Folder>
@@ -33,16 +46,30 @@
     <Project Path="src/Services/Payment/Conflux.Payment/Conflux.Payment.csproj" />
   </Folder>
   <Folder Name="/src/Workers/" />
+  <Folder Name="/src/Workers/CatalogOutbox/">
+    <Project Path="src/Workers/CatalogOutbox/Conflux.Catalog.OutboxPublisher/Conflux.Catalog.OutboxPublisher.csproj" />
+  </Folder>
+  <Folder Name="/src/Workers/CatalogProjection/">
+    <Project Path="src/Workers/CatalogProjection/Conflux.Catalog.ProjectionWorker/Conflux.Catalog.ProjectionWorker.csproj" />
+  </Folder>
   <Folder Name="/src/Workers/InventoryOutbox/">
     <Project Path="src/Workers/InventoryOutbox/Conflux.Inventory.OutboxPublisher/Conflux.Inventory.OutboxPublisher.csproj" />
+  </Folder>
+  <Folder Name="/src/Workers/OrderOutbox/">
+    <Project Path="src/Workers/OrderOutbox/Conflux.Order.OutboxPublisher/Conflux.Order.OutboxPublisher.csproj" />
   </Folder>
   <Folder Name="/src/Workers/PaymentOutbox/">
     <Project Path="src/Workers/PaymentOutbox/Conflux.Payment.OutboxPublisher/Conflux.Payment.OutboxPublisher.csproj" />
   </Folder>
   <Folder Name="/tests/" />
-  <Folder Name="/tests/Contract/" />
+  <Folder Name="/tests/Contract/">
+    <Project Path="tests/Contract/Conflux.ContractTests/Conflux.ContractTests.csproj" />
+  </Folder>
   <Folder Name="/tests/EndToEnd/" />
   <Folder Name="/tests/Services/" />
+  <Folder Name="/tests/Services/Fulfillment/">
+    <Project Path="tests/Services/Fulfillment/Conflux.Fulfillment.UnitTests/Conflux.Fulfillment.UnitTests.csproj" />
+  </Folder>
   <Folder Name="/tests/Services/Catalog/">
     <Project Path="tests/Services/Catalog/Conflux.Catalog.IntegrationTests/Conflux.Catalog.IntegrationTests.csproj" />
   </Folder>
@@ -59,8 +86,14 @@
   <Folder Name="/tests/Services/Payment/">
     <Project Path="tests/Services/Payment/Conflux.Payment.IntegrationTests/Conflux.Payment.IntegrationTests.csproj" />
   </Folder>
+  <Folder Name="/tests/Architecture/">
+    <Project Path="tests/Architecture/Conflux.ArchitectureTests/Conflux.ArchitectureTests.csproj" />
+  </Folder>
   <Folder Name="/tests/Unit/" />
   <Folder Name="/tests/Workers/" />
+  <Folder Name="/tests/Workers/OrderOutbox/">
+    <Project Path="tests/Workers/OrderOutbox/Conflux.Order.OutboxPublisher.IntegrationTests/Conflux.Order.OutboxPublisher.IntegrationTests.csproj" />
+  </Folder>
   <Folder Name="/tests/Workers/InventoryOutbox/">
     <Project Path="tests/Workers/InventoryOutbox/Conflux.Inventory.OutboxPublisher.IntegrationTests/Conflux.Inventory.OutboxPublisher.IntegrationTests.csproj" />
   </Folder>

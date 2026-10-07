@@ -28,5 +28,10 @@ public enum PaymentStatus
     /// <summary>
     /// The payment authorization or capture has been voided.
     /// </summary>
-    Voided = 4
+    Voided = 4,
+
+    /// <summary>
+    /// The captured payment has been refunded.
+    /// </summary>
+    Refunded = 5
 }

@@ -1,5 +1,10 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
+using Conflux.Contracts.Events;
+using Conflux.Order.Infrastructure;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Conflux.Order.Domain;
 using Conflux.Order.Features.Orders.CreateOrder;
 using Conflux.Order.IntegrationTests.Infrastructure;
@@ -46,6 +51,38 @@ public sealed class OrderEndpointsTests :
         _client.Dispose();
 
         await _factory.DisposeAsync();
+    }
+
+
+    /// <summary>Verifies successful inventory reservation creates the Order Outbox event.</summary>
+    [Fact]
+    public async Task CreateOrder_WithInventoryReservation_PersistsOrderOutboxEvent()
+    {
+        var customerId = Guid.NewGuid();
+        var idempotencyKey = Guid.NewGuid().ToString();
+        var request = CreateRequest(customerId, "CONFLUX-001", 1, 200m, "INR");
+
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/v1/orders")
+        { Content = JsonContent.Create(request) };
+        httpRequest.Headers.Add("Idempotency-Key", idempotencyKey);
+
+        var response = await _client.SendAsync(httpRequest, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+
+        var created = await response.Content.ReadFromJsonAsync<CreateOrderResponse>(TestContext.Current.CancellationToken);
+        Assert.NotNull(created);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<OrderDbContext>();
+        var message = await db.OutboxMessages.AsNoTracking().SingleAsync(
+            item => item.EventType == "order.inventory-reserved.v1" && item.CorrelationId == created!.OrderId,
+            TestContext.Current.CancellationToken);
+
+        var orderEvent = JsonSerializer.Deserialize<OrderInventoryReserved>(message.Payload);
+        Assert.NotNull(orderEvent);
+        Assert.Equal(created.OrderId, orderEvent!.OrderId);
+        Assert.Equal(message.Id, orderEvent.EventId);
+        Assert.Equal(customerId, orderEvent.CustomerId);
     }
 
     /// <summary>
