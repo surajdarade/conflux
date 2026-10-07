@@ -1,8 +1,9 @@
+
 name: Conflux CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
 
 jobs:
@@ -29,7 +30,41 @@ jobs:
         run: dotnet build Conflux.slnx -c Release --no-restore
 
       - name: Start infrastructure
-        run: docker compose -f deploy/docker/docker-compose.yml up -d postgres kafka redis
+        run: |
+          docker compose -f deploy/docker/docker-compose.yml \
+            up -d postgres kafka redis
+
+      - name: Start application stack
+        run: |
+          docker compose -f deploy/docker/docker-compose.yml \
+            up -d --build gateway
+
+      - name: Check application containers
+        run: |
+          docker compose -f deploy/docker/docker-compose.yml ps
+
+      - name: Wait for Gateway
+        run: |
+          echo "Waiting for Conflux Gateway on port 8080..."
+
+          for attempt in $(seq 1 60); do
+            if curl --silent --output /dev/null \
+              --max-time 3 http://localhost:8080/; then
+              echo "Gateway is accepting HTTP connections."
+              exit 0
+            fi
+
+            echo "Gateway not ready. Attempt $attempt/60"
+            sleep 5
+          done
+
+          echo "Gateway did not become available."
+
+          docker compose -f deploy/docker/docker-compose.yml ps
+          docker compose -f deploy/docker/docker-compose.yml logs \
+            --tail=100 gateway identity catalog inventory order payment fulfillment
+
+          exit 1
 
       - name: Full-stack E2E checkout smoke
         run: bash ./scripts/e2e-checkout-smoke.sh
@@ -41,10 +76,17 @@ jobs:
           bash ./scripts/run-hot-sku.sh
 
       - name: Test
-        run: dotnet test Conflux.slnx -c Release --no-build --logger "trx;LogFileName=test-results.trx"
+        run: |
+          dotnet test Conflux.slnx \
+            -c Release \
+            --no-build \
+            --logger "trx;LogFileName=test-results.trx"
 
       - name: Package vulnerability audit
-        run: dotnet list Conflux.slnx package --vulnerable --include-transitive
+        run: |
+          dotnet list Conflux.slnx package \
+            --vulnerable \
+            --include-transitive
 
       - name: Upload test results
         if: always()
@@ -54,6 +96,14 @@ jobs:
           path: '**/TestResults/**/*.trx'
           if-no-files-found: ignore
 
+      - name: Show container logs on failure
+        if: failure()
+        run: |
+          docker compose -f deploy/docker/docker-compose.yml ps
+          docker compose -f deploy/docker/docker-compose.yml logs \
+            --tail=150
+
       - name: Shutdown infrastructure
         if: always()
-        run: docker compose -f deploy/docker/docker-compose.yml down -v
+        run: |
+          docker compose -f deploy/docker/docker-compose.yml down -v
