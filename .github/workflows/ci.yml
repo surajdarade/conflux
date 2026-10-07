@@ -9,6 +9,7 @@ jobs:
   build-test:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,10 +32,13 @@ jobs:
         run: docker compose -f deploy/docker/docker-compose.yml up -d postgres kafka redis
 
       - name: Full-stack E2E checkout smoke
-        run: ./scripts/e2e-checkout-smoke.sh
+        run: bash ./scripts/e2e-checkout-smoke.sh
 
       - name: Hot-SKU correctness stress
-        run: CONFLUX_HOT_SKU_REQUESTS=10000 CONFLUX_HOT_SKU_CONCURRENCY=256 ./scripts/run-hot-sku.sh
+        run: |
+          CONFLUX_HOT_SKU_REQUESTS=10000 \
+          CONFLUX_HOT_SKU_CONCURRENCY=256 \
+          bash ./scripts/run-hot-sku.sh
 
       - name: Test
         run: dotnet test Conflux.slnx -c Release --no-build --logger "trx;LogFileName=test-results.trx"
