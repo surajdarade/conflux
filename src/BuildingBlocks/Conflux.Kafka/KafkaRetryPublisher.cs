@@ -12,7 +12,7 @@ public sealed class KafkaRetryPublisher : IDisposable
 
     /// <summary>Initializes the retry publisher with a configured Kafka producer.</summary>
     public KafkaRetryPublisher(IOptions<KafkaRetryOptions> options)
-        : this(options, new ConfluentKafkaMessageProducer(options.Value))
+    : this(options, CreateProducer(options))
     {
     }
 
@@ -116,6 +116,14 @@ public sealed class KafkaRetryPublisher : IDisposable
             }
         }
         return string.Empty;
+    }
+
+    private static IKafkaMessageProducer CreateProducer(
+    IOptions<KafkaRetryOptions> options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        return new ConfluentKafkaMessageProducer(options.Value);
     }
 }
 
