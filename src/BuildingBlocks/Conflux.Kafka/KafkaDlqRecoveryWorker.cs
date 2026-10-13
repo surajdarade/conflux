@@ -1,7 +1,7 @@
+﻿using System.Text;
+using Confluent.Kafka;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using System.Text;
-using Confluent.Kafka;
 using Microsoft.Extensions.Options;
 
 namespace Conflux.Kafka;
@@ -14,12 +14,37 @@ public sealed class KafkaDlqRecoveryWorker : BackgroundService
 {
     private readonly KafkaRetryOptions _options;
     private readonly ILogger<KafkaDlqRecoveryWorker> _logger;
+    private readonly Func<IKafkaMessageConsumer> _consumerFactory;
+    private readonly Func<IKafkaMessageProducer> _producerFactory;
 
-    /// <summary>Initializes the recovery worker.</summary>
-    public KafkaDlqRecoveryWorker(IOptions<KafkaRetryOptions> options, ILogger<KafkaDlqRecoveryWorker> logger)
+    /// <summary>Initializes the recovery worker with configured Kafka clients.</summary>
+    public KafkaDlqRecoveryWorker(
+        IOptions<KafkaRetryOptions> options,
+        ILogger<KafkaDlqRecoveryWorker> logger)
+        : this(
+            options,
+            logger,
+            () => CreateConsumer(options.Value),
+            () => new ConfluentKafkaMessageProducer(options.Value))
     {
+    }
+
+    /// <summary>Initializes the recovery worker with injectable Kafka client factories.</summary>
+    public KafkaDlqRecoveryWorker(
+        IOptions<KafkaRetryOptions> options,
+        ILogger<KafkaDlqRecoveryWorker> logger,
+        Func<IKafkaMessageConsumer> consumerFactory,
+        Func<IKafkaMessageProducer> producerFactory)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(consumerFactory);
+        ArgumentNullException.ThrowIfNull(producerFactory);
+
         _options = options.Value;
         _logger = logger;
+        _consumerFactory = consumerFactory;
+        _producerFactory = producerFactory;
     }
 
     /// <inheritdoc />
@@ -30,26 +55,13 @@ public sealed class KafkaDlqRecoveryWorker : BackgroundService
             return;
         }
 
-        var config = new ConsumerConfig
-        {
-            BootstrapServers = _options.BootstrapServers,
-            GroupId = _options.ConsumerGroup + "-dlq-recovery",
-            AutoOffsetReset = AutoOffsetReset.Earliest,
-            EnableAutoCommit = false,
-            AllowAutoCreateTopics = true
-        };
-
         var dlqTopics = _options.SourceTopics
             .Select(KafkaRetryOptions.GetDlqTopic)
             .ToArray();
 
-        using var consumer = new ConsumerBuilder<string, string>(config).Build();
-        using var producer = new ProducerBuilder<string, string>(new ProducerConfig
-        {
-            BootstrapServers = _options.BootstrapServers,
-            EnableIdempotence = true,
-            Acks = Acks.All
-        }).Build();
+        using var consumer = _consumerFactory();
+        using var producer = _producerFactory();
+
         consumer.Subscribe(dlqTopics);
 
         try
@@ -58,21 +70,31 @@ public sealed class KafkaDlqRecoveryWorker : BackgroundService
             {
                 var result = consumer.Consume(stoppingToken);
                 var recovered = Header(result.Message.Headers, "x-conflux-recovered");
+
                 if (string.Equals(recovered, "true", StringComparison.OrdinalIgnoreCase))
                 {
                     await producer.ProduceAsync(
                         PermanentDlqTopic(result.Topic),
                         result.Message,
                         stoppingToken);
+
                     consumer.Commit(result);
                     continue;
                 }
 
                 await Task.Delay(_options.DlqRecoveryDelay, stoppingToken);
-                var sourceTopic = Header(result.Message.Headers, "x-conflux-original-topic");
+
+                var sourceTopic = Header(
+                    result.Message.Headers,
+                    "x-conflux-original-topic");
+
                 if (string.IsNullOrWhiteSpace(sourceTopic))
                 {
-                    await producer.ProduceAsync(PermanentDlqTopic(result.Topic), result.Message, stoppingToken);
+                    await producer.ProduceAsync(
+                        PermanentDlqTopic(result.Topic),
+                        result.Message,
+                        stoppingToken);
+
                     consumer.Commit(result);
                     continue;
                 }
@@ -80,9 +102,13 @@ public sealed class KafkaDlqRecoveryWorker : BackgroundService
                 var headers = CloneHeaders(result.Message.Headers);
                 headers.Remove("x-conflux-not-before-unix-ms");
                 headers.Remove("x-conflux-retry-attempt");
+
                 SetHeader(headers, "x-conflux-retry-attempt", "0");
                 SetHeader(headers, "x-conflux-recovered", "true");
-                SetHeader(headers, "x-conflux-recovered-at", DateTimeOffset.UtcNow.ToString("O"));
+                SetHeader(
+                    headers,
+                    "x-conflux-recovered-at",
+                    DateTimeOffset.UtcNow.ToString("O"));
 
                 await producer.ProduceAsync(
                     sourceTopic,
@@ -94,6 +120,7 @@ public sealed class KafkaDlqRecoveryWorker : BackgroundService
                         Timestamp = result.Message.Timestamp
                     },
                     stoppingToken);
+
                 consumer.Commit(result);
             }
         }
@@ -102,7 +129,10 @@ public sealed class KafkaDlqRecoveryWorker : BackgroundService
         }
         catch (Exception exception)
         {
-            _logger.LogError(exception, "Kafka DLQ recovery worker stopped unexpectedly.");
+            _logger.LogError(
+                exception,
+                "Kafka DLQ recovery worker stopped unexpectedly.");
+
             throw;
         }
         finally
@@ -111,15 +141,33 @@ public sealed class KafkaDlqRecoveryWorker : BackgroundService
         }
     }
 
-    private static string PermanentDlqTopic(string dlqTopic) => dlqTopic + ".permanent";
+    private static IKafkaMessageConsumer CreateConsumer(KafkaRetryOptions options)
+    {
+        var config = new ConsumerConfig
+        {
+            BootstrapServers = options.BootstrapServers,
+            GroupId = options.ConsumerGroup + "-dlq-recovery",
+            AutoOffsetReset = AutoOffsetReset.Earliest,
+            EnableAutoCommit = false,
+            AllowAutoCreateTopics = true
+        };
+
+        var consumer = new ConsumerBuilder<string, string>(config).Build();
+        return new ConfluentKafkaMessageConsumer(consumer);
+    }
+
+    private static string PermanentDlqTopic(string dlqTopic) =>
+        dlqTopic + ".permanent";
 
     private static Headers CloneHeaders(Headers headers)
     {
         var clone = new Headers();
+
         foreach (var header in headers)
         {
             clone.Add(header.Key, header.GetValueBytes());
         }
+
         return clone;
     }
 
@@ -136,9 +184,13 @@ public sealed class KafkaDlqRecoveryWorker : BackgroundService
             if (string.Equals(headers[index].Key, name, StringComparison.Ordinal))
             {
                 var bytes = headers[index].GetValueBytes();
-                return bytes is { Length: > 0 } ? Encoding.UTF8.GetString(bytes) : string.Empty;
+
+                return bytes is { Length: > 0 }
+                    ? Encoding.UTF8.GetString(bytes)
+                    : string.Empty;
             }
         }
+
         return string.Empty;
     }
 }

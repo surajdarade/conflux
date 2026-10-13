@@ -6,9 +6,11 @@ RUN dotnet restore "$PROJECT"
 RUN dotnet publish "$PROJECT" -c Release -o /app/publish --no-restore /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+ARG APP_DLL
 WORKDIR /app
 COPY --from=build /app/publish .
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080
-ENTRYPOINT ["dotnet", "Conflux.Inventory.dll"]
+ENV APP_DLL=${APP_DLL}
+ENTRYPOINT ["sh", "-c", "exec dotnet \"$APP_DLL\""]

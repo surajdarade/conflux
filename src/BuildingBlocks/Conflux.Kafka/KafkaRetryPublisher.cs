@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using Confluent.Kafka;
 using Microsoft.Extensions.Options;
 
@@ -7,20 +7,25 @@ namespace Conflux.Kafka;
 /// <summary>Publishes failed Kafka messages to retry topics or a DLQ.</summary>
 public sealed class KafkaRetryPublisher : IDisposable
 {
-    private readonly IProducer<string, string> _producer;
+    private readonly IKafkaMessageProducer _producer;
     private readonly KafkaRetryOptions _options;
 
-    /// <summary>Initializes the retry publisher.</summary>
+    /// <summary>Initializes the retry publisher with a configured Kafka producer.</summary>
     public KafkaRetryPublisher(IOptions<KafkaRetryOptions> options)
+        : this(options, new ConfluentKafkaMessageProducer(options.Value))
     {
+    }
+
+    /// <summary>Initializes the retry publisher with an injectable message producer.</summary>
+    public KafkaRetryPublisher(
+        IOptions<KafkaRetryOptions> options,
+        IKafkaMessageProducer producer)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(producer);
+
         _options = options.Value;
-        _producer = new ProducerBuilder<string, string>(new ProducerConfig
-        {
-            BootstrapServers = _options.BootstrapServers,
-            EnableIdempotence = true,
-            Acks = Acks.All,
-            MessageTimeoutMs = 30_000
-        }).Build();
+        _producer = producer;
     }
 
     /// <summary>Routes a failed message to its next retry stage or DLQ.</summary>
@@ -29,6 +34,9 @@ public sealed class KafkaRetryPublisher : IDisposable
         Exception exception,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(result);
+        ArgumentNullException.ThrowIfNull(exception);
+
         var sourceTopic = Header(result.Message.Headers, "x-conflux-original-topic");
         if (string.IsNullOrWhiteSpace(sourceTopic))
         {
@@ -109,4 +117,34 @@ public sealed class KafkaRetryPublisher : IDisposable
         }
         return string.Empty;
     }
+}
+
+/// <summary>Publishes messages using the Confluent Kafka producer.</summary>
+internal sealed class ConfluentKafkaMessageProducer : IKafkaMessageProducer
+{
+    private readonly IProducer<string, string> _producer;
+
+    /// <summary>Creates a Kafka producer using the retry configuration.</summary>
+    public ConfluentKafkaMessageProducer(KafkaRetryOptions options)
+    {
+        _producer = new ProducerBuilder<string, string>(new ProducerConfig
+        {
+            BootstrapServers = options.BootstrapServers,
+            EnableIdempotence = true,
+            Acks = Acks.All,
+            MessageTimeoutMs = 30_000
+        }).Build();
+    }
+
+    /// <inheritdoc />
+    public async Task ProduceAsync(
+        string topic,
+        Message<string, string> message,
+        CancellationToken cancellationToken)
+    {
+        await _producer.ProduceAsync(topic, message, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public void Dispose() => _producer.Dispose();
 }

@@ -24,10 +24,17 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />
     <PackageReference Include="Confluent.Kafka" />
+
     <ProjectReference Include="..\..\..\BuildingBlocks\Conflux.Contracts\Conflux.Contracts.csproj" />
-  
     <ProjectReference Include="..\..\..\BuildingBlocks\Conflux.Observability\Conflux.Observability.csproj" />
-      <ProjectReference Include="..\..\..\BuildingBlocks\Conflux.Outbox\Conflux.Outbox.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Conflux.Outbox\Conflux.Outbox.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Conflux.Inbox\Conflux.Inbox.csproj" />
   </ItemGroup>
+
+  <ItemGroup Condition="'$(ConfluxWorkerPublish)' == 'true'">
+    <Content Update="appsettings*.json">
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

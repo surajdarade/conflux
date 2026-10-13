@@ -36,4 +36,9 @@
 		  Include="..\..\..\BuildingBlocks\Conflux.Outbox\Conflux.Outbox.csproj" />
 	</ItemGroup>
 
+  <ItemGroup Condition="'$(ConfluxWorkerPublish)' == 'true'">
+    <Content Update="appsettings*.json">
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
 </Project>
