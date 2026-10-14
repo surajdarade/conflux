@@ -199,7 +199,7 @@ public sealed class CheckoutSagaWorker : BackgroundService
             {
                 orderEvent.OrderId,
                 orderEvent.CustomerId,
-                orderEvent.TotalAmount,
+                Amount = orderEvent.TotalAmount,
                 Currency = orderEvent.Currency
             })
         };

@@ -7,12 +7,14 @@ namespace Conflux.Kafka;
 /// <summary>Publishes failed Kafka messages to retry topics or a DLQ.</summary>
 public sealed class KafkaRetryPublisher : IDisposable
 {
+    private const string RetryIdentityHeader = "x-conflux-retry-identity";
+
     private readonly IKafkaMessageProducer _producer;
     private readonly KafkaRetryOptions _options;
 
     /// <summary>Initializes the retry publisher with a configured Kafka producer.</summary>
     public KafkaRetryPublisher(IOptions<KafkaRetryOptions> options)
-    : this(options, CreateProducer(options))
+        : this(options, CreateProducer(options))
     {
     }
 
@@ -37,27 +39,53 @@ public sealed class KafkaRetryPublisher : IDisposable
         ArgumentNullException.ThrowIfNull(result);
         ArgumentNullException.ThrowIfNull(exception);
 
-        var sourceTopic = Header(result.Message.Headers, "x-conflux-original-topic");
-        if (string.IsNullOrWhiteSpace(sourceTopic))
+        var headers = CloneHeaders(result.Message.Headers);
+
+        var sourceTopic = Header(headers, "x-conflux-original-topic");
+        if (string.IsNullOrWhiteSpace(sourceTopic) ||
+            (_options.SourceTopics.Count > 0 &&
+             !_options.SourceTopics.Contains(sourceTopic, StringComparer.Ordinal)))
         {
+            // The consumed topic is broker metadata; an original-topic header is
+            // message metadata and must not redirect failures to arbitrary topics.
+            if (_options.SourceTopics.Count > 0 &&
+                !_options.SourceTopics.Contains(result.Topic, StringComparer.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"Cannot route a failed Kafka message from unconfigured topic '{result.Topic}'.");
+            }
+
             sourceTopic = result.Topic;
         }
 
-        var currentAttempt = ParseAttempt(result.Message.Headers);
-        var nextAttempt = currentAttempt + 1;
-        var destination = nextAttempt >= _options.MaxAttempts
-            ? KafkaRetryOptions.GetDlqTopic(sourceTopic)
-            : KafkaRetryOptions.GetRetryTopic(sourceTopic, nextAttempt);
+        // A configured identity is authoritative. Message metadata is only a
+        // compatibility fallback for a publisher running in legacy mode.
+        var retryIdentity = string.IsNullOrWhiteSpace(_options.RetryIdentity)
+            ? Header(headers, RetryIdentityHeader)
+            : _options.RetryIdentity;
 
-        var headers = CloneHeaders(result.Message.Headers);
+        var currentAttempt = ParseAttempt(headers);
+        var nextAttempt = currentAttempt + 1;
+
+        var destination = nextAttempt >= _options.MaxAttempts
+            ? GetDlqTopic(sourceTopic, retryIdentity)
+            : GetRetryTopic(sourceTopic, retryIdentity, nextAttempt);
+
         SetHeader(headers, "x-conflux-original-topic", sourceTopic);
         SetHeader(headers, "x-conflux-retry-attempt", nextAttempt.ToString());
         SetHeader(headers, "x-conflux-error", exception.Message);
 
+        if (!string.IsNullOrWhiteSpace(retryIdentity))
+        {
+            SetHeader(headers, RetryIdentityHeader, retryIdentity);
+        }
+
         if (destination.Contains(".retry.", StringComparison.Ordinal))
         {
             var delay = TimeSpan.FromMilliseconds(
-                _options.BaseDelay.TotalMilliseconds * Math.Pow(2, Math.Max(0, nextAttempt - 1)));
+                _options.BaseDelay.TotalMilliseconds *
+                Math.Pow(2, Math.Max(0, nextAttempt - 1)));
+
             SetHeader(
                 headers,
                 "x-conflux-not-before-unix-ms",
@@ -65,7 +93,11 @@ public sealed class KafkaRetryPublisher : IDisposable
         }
         else
         {
-            SetHeader(headers, "x-conflux-dlq-attempted-at", DateTimeOffset.UtcNow.ToString("O"));
+            headers.Remove("x-conflux-not-before-unix-ms");
+            SetHeader(
+                headers,
+                "x-conflux-dlq-attempted-at",
+                DateTimeOffset.UtcNow.ToString("O"));
         }
 
         await _producer.ProduceAsync(
@@ -83,6 +115,16 @@ public sealed class KafkaRetryPublisher : IDisposable
     /// <inheritdoc />
     public void Dispose() => _producer.Dispose();
 
+    private string GetRetryTopic(string sourceTopic, string retryIdentity, int attempt) =>
+        string.IsNullOrWhiteSpace(retryIdentity)
+            ? KafkaRetryOptions.GetRetryTopic(sourceTopic, attempt)
+            : KafkaRetryOptions.GetRetryTopic(sourceTopic, retryIdentity, attempt);
+
+    private string GetDlqTopic(string sourceTopic, string retryIdentity) =>
+        string.IsNullOrWhiteSpace(retryIdentity)
+            ? KafkaRetryOptions.GetDlqTopic(sourceTopic)
+            : KafkaRetryOptions.GetDlqTopic(sourceTopic, retryIdentity);
+
     private static int ParseAttempt(Headers headers)
     {
         var value = Header(headers, "x-conflux-retry-attempt");
@@ -96,6 +138,7 @@ public sealed class KafkaRetryPublisher : IDisposable
         {
             clone.Add(header.Key, header.GetValueBytes());
         }
+
         return clone;
     }
 
@@ -112,17 +155,19 @@ public sealed class KafkaRetryPublisher : IDisposable
             if (string.Equals(headers[index].Key, name, StringComparison.Ordinal))
             {
                 var bytes = headers[index].GetValueBytes();
-                return bytes is { Length: > 0 } ? Encoding.UTF8.GetString(bytes) : string.Empty;
+                return bytes is { Length: > 0 }
+                    ? Encoding.UTF8.GetString(bytes)
+                    : string.Empty;
             }
         }
+
         return string.Empty;
     }
 
     private static IKafkaMessageProducer CreateProducer(
-    IOptions<KafkaRetryOptions> options)
+        IOptions<KafkaRetryOptions> options)
     {
         ArgumentNullException.ThrowIfNull(options);
-
         return new ConfluentKafkaMessageProducer(options.Value);
     }
 }

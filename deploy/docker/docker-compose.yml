@@ -115,6 +115,7 @@ services:
       CheckoutSaga__Enabled: "true"
       CheckoutSaga__BootstrapServers: kafka:9092
       KafkaRetry__BootstrapServers: kafka:9092
+      KafkaRetry__RetryIdentity: order-checkout-saga
       KafkaRetry__SourceTopics__0: conflux.order.events
       KafkaRetry__SourceTopics__1: conflux.payment.events
       KafkaRetry__ConsumerGroup: conflux-order-checkout-retry-v1
@@ -153,6 +154,7 @@ services:
       Database__ApplyMigrations: "true"
       Kafka__BootstrapServers: kafka:9092
       KafkaRetry__BootstrapServers: kafka:9092
+      KafkaRetry__RetryIdentity: fulfillment-order-confirmed
       KafkaRetry__SourceTopics__0: conflux.order.events
       KafkaRetry__ConsumerGroup: conflux-fulfillment-retry-v1
       KafkaRetry__MaxAttempts: "3"
@@ -194,11 +196,6 @@ services:
     environment:
       ConnectionStrings__CatalogDatabase: Host=postgres;Port=5432;Database=conflux_catalog;Username=postgres;Password=postgres
       Kafka__BootstrapServers: kafka:9092
-      KafkaRetry__BootstrapServers: kafka:9092
-      KafkaRetry__SourceTopics__0: conflux.catalog.events
-      KafkaRetry__ConsumerGroup: conflux-catalog-projection-retry-v1
-      KafkaRetry__MaxAttempts: "3"
-      KafkaRetry__AutomaticDlqRecovery: "true"
     depends_on:
       - postgres
       - kafka
@@ -214,6 +211,7 @@ services:
       ConnectionStrings__CatalogDatabase: Host=postgres;Port=5432;Database=conflux_catalog;Username=postgres;Password=postgres
       Kafka__BootstrapServers: kafka:9092
       KafkaRetry__BootstrapServers: kafka:9092
+      KafkaRetry__RetryIdentity: catalog-projection
       KafkaRetry__SourceTopics__0: conflux.catalog.events
       KafkaRetry__ConsumerGroup: conflux-catalog-projection-retry-v1
       KafkaRetry__MaxAttempts: "3"

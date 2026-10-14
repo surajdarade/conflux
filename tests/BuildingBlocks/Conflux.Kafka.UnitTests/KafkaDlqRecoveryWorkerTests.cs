@@ -8,13 +8,21 @@ using Xunit;
 namespace Conflux.Kafka.UnitTests;
 
 /// <summary>
-/// Tests automatic DLQ recovery, routing, offset handling, and lifecycle behavior.
+/// Tests automatic DLQ recovery, identity isolation, offset handling,
+/// and lifecycle behavior.
 /// </summary>
 public sealed class KafkaDlqRecoveryWorkerTests
 {
     private const string SourceTopic = "conflux.catalog.events";
     private const string DlqTopic = SourceTopic + ".dlq";
     private const string PermanentDlqTopic = DlqTopic + ".permanent";
+
+    private const string RetryIdentity = "catalog-projection";
+    private const string IdentityDlqTopic = SourceTopic + ".dlq." + RetryIdentity;
+    private const string IdentityPermanentDlqTopic =
+        IdentityDlqTopic + ".permanent";
+
+    private const string RetryIdentityHeader = "x-conflux-retry-identity";
 
     /// <summary>
     /// Recovers a DLQ message to its original topic and commits its offset.
@@ -42,25 +50,24 @@ public sealed class KafkaDlqRecoveryWorkerTests
         }
 
         var published = Assert.Single(producer.PublishedMessages);
+
         Assert.Equal(SourceTopic, published.Topic);
         Assert.Equal("product-1", published.Message.Key);
         Assert.Equal("{\"sku\":\"TEST-001\"}", published.Message.Value);
 
-        Assert.Equal("0", ReadHeader(
-            published.Message.Headers,
-            "x-conflux-retry-attempt"));
+        Assert.Equal(
+            "0",
+            ReadHeader(published.Message.Headers, "x-conflux-retry-attempt"));
 
-        Assert.Equal("true", ReadHeader(
-            published.Message.Headers,
-            "x-conflux-recovered"));
+        Assert.Equal(
+            "true",
+            ReadHeader(published.Message.Headers, "x-conflux-recovered"));
 
-        Assert.NotNull(ReadHeader(
-            published.Message.Headers,
-            "x-conflux-recovered-at"));
+        Assert.NotNull(
+            ReadHeader(published.Message.Headers, "x-conflux-recovered-at"));
 
-        Assert.Null(ReadHeader(
-            published.Message.Headers,
-            "x-conflux-not-before-unix-ms"));
+        Assert.Null(
+            ReadHeader(published.Message.Headers, "x-conflux-not-before-unix-ms"));
 
         Assert.Single(consumer.CommittedMessages);
         Assert.True(consumer.IsClosed);
@@ -93,6 +100,7 @@ public sealed class KafkaDlqRecoveryWorkerTests
         }
 
         var published = Assert.Single(producer.PublishedMessages);
+
         Assert.Equal(PermanentDlqTopic, published.Topic);
         Assert.Equal("product-1", published.Message.Key);
         Assert.Equal("{\"sku\":\"TEST-001\"}", published.Message.Value);
@@ -125,6 +133,7 @@ public sealed class KafkaDlqRecoveryWorkerTests
         }
 
         var published = Assert.Single(producer.PublishedMessages);
+
         Assert.Equal(PermanentDlqTopic, published.Topic);
         Assert.Equal("product-1", published.Message.Key);
         Assert.Single(consumer.CommittedMessages);
@@ -295,14 +304,192 @@ public sealed class KafkaDlqRecoveryWorkerTests
         Assert.Empty(consumer.CommittedMessages);
     }
 
+    /// <summary>
+    /// Subscribes to identity-specific DLQ topics when a retry identity is set.
+    /// </summary>
+    [Fact]
+    public async Task StartAsync_WithRetryIdentity_SubscribesToIdentitySpecificDlqTopics()
+    {
+        var consumer = new FakeKafkaMessageConsumer([]);
+        var producer = new FakeKafkaMessageProducer();
+
+        using var worker = CreateWorker(
+            consumer,
+            producer,
+            retryIdentity: RetryIdentity);
+
+        await worker.StartAsync(CancellationToken.None);
+
+        try
+        {
+            await WaitUntilAsync(
+                () => consumer.SubscribedTopics.Count > 0,
+                TimeSpan.FromSeconds(5));
+        }
+        finally
+        {
+            await worker.StopAsync(CancellationToken.None);
+        }
+
+        Assert.Equal([IdentityDlqTopic], consumer.SubscribedTopics);
+    }
+
+    /// <summary>
+    /// Recovers a message with the matching identity and preserves that identity.
+    /// </summary>
+    [Fact]
+    public async Task DlqMessage_WithMatchingIdentity_IsRecoveredAndIdentityPreserved()
+    {
+        var message = CreateDlqMessage(retryIdentity: RetryIdentity);
+        var consumer = new FakeKafkaMessageConsumer([message]);
+        var producer = new FakeKafkaMessageProducer();
+
+        using var worker = CreateWorker(
+            consumer,
+            producer,
+            retryIdentity: RetryIdentity);
+
+        await worker.StartAsync(CancellationToken.None);
+
+        try
+        {
+            await WaitUntilAsync(
+                () => consumer.CommittedMessages.Count == 1,
+                TimeSpan.FromSeconds(5));
+        }
+        finally
+        {
+            await worker.StopAsync(CancellationToken.None);
+        }
+
+        var published = Assert.Single(producer.PublishedMessages);
+
+        Assert.Equal(SourceTopic, published.Topic);
+        Assert.Equal(
+            RetryIdentity,
+            ReadHeader(published.Message.Headers, RetryIdentityHeader));
+        Assert.Equal(
+            "true",
+            ReadHeader(published.Message.Headers, "x-conflux-recovered"));
+        Assert.Single(consumer.CommittedMessages);
+    }
+
+    /// <summary>
+    /// Routes a message without an identity to the identity-specific permanent DLQ.
+    /// </summary>
+    [Fact]
+    public async Task DlqMessage_WithoutIdentity_IsRoutedToPermanentDlqWithoutReplay()
+    {
+        var message = CreateDlqMessage(
+            includeIdentitySpecificTopic: true);
+
+        var consumer = new FakeKafkaMessageConsumer([message]);
+        var producer = new FakeKafkaMessageProducer();
+
+        using var worker = CreateWorker(
+            consumer,
+            producer,
+            retryIdentity: RetryIdentity);
+
+        await worker.StartAsync(CancellationToken.None);
+
+        try
+        {
+            await WaitUntilAsync(
+                () => consumer.CommittedMessages.Count == 1,
+                TimeSpan.FromSeconds(5));
+        }
+        finally
+        {
+            await worker.StopAsync(CancellationToken.None);
+        }
+
+        var published = Assert.Single(producer.PublishedMessages);
+
+        Assert.Equal(IdentityPermanentDlqTopic, published.Topic);
+        Assert.Single(consumer.CommittedMessages);
+    }
+
+    /// <summary>
+    /// Routes a message with a different identity to the permanent DLQ.
+    /// </summary>
+    [Fact]
+    public async Task DlqMessage_WithMismatchedIdentity_IsRoutedToPermanentDlqWithoutReplay()
+    {
+        var message = CreateDlqMessage(
+            retryIdentity: "order-checkout-saga",
+            includeIdentitySpecificTopic: true);
+
+        var consumer = new FakeKafkaMessageConsumer([message]);
+        var producer = new FakeKafkaMessageProducer();
+
+        using var worker = CreateWorker(
+            consumer,
+            producer,
+            retryIdentity: RetryIdentity);
+
+        await worker.StartAsync(CancellationToken.None);
+
+        try
+        {
+            await WaitUntilAsync(
+                () => consumer.CommittedMessages.Count == 1,
+                TimeSpan.FromSeconds(5));
+        }
+        finally
+        {
+            await worker.StopAsync(CancellationToken.None);
+        }
+
+        var published = Assert.Single(producer.PublishedMessages);
+
+        Assert.Equal(IdentityPermanentDlqTopic, published.Topic);
+        Assert.Single(consumer.CommittedMessages);
+    }
+
+    /// <summary>
+    /// Rejects a message whose original topic is not configured.
+    /// </summary>
+    [Fact]
+    public async Task DlqMessage_WithUnconfiguredOriginalTopic_IsRoutedToPermanentDlq()
+    {
+        var message = CreateDlqMessage(
+            originalTopic: "conflux.unconfigured.events");
+
+        var consumer = new FakeKafkaMessageConsumer([message]);
+        var producer = new FakeKafkaMessageProducer();
+
+        using var worker = CreateWorker(consumer, producer);
+
+        await worker.StartAsync(CancellationToken.None);
+
+        try
+        {
+            await WaitUntilAsync(
+                () => consumer.CommittedMessages.Count == 1,
+                TimeSpan.FromSeconds(5));
+        }
+        finally
+        {
+            await worker.StopAsync(CancellationToken.None);
+        }
+
+        var published = Assert.Single(producer.PublishedMessages);
+
+        Assert.Equal(PermanentDlqTopic, published.Topic);
+        Assert.Single(consumer.CommittedMessages);
+    }
+
     private static KafkaDlqRecoveryWorker CreateWorker(
         FakeKafkaMessageConsumer consumer,
         FakeKafkaMessageProducer producer,
-        TimeSpan? recoveryDelay = null)
+        TimeSpan? recoveryDelay = null,
+        string retryIdentity = "")
     {
         var options = Options.Create(new KafkaRetryOptions
         {
             SourceTopics = [SourceTopic],
+            RetryIdentity = retryIdentity,
             MaxAttempts = 3,
             AutomaticDlqRecovery = true,
             DlqRecoveryDelay = recoveryDelay ?? TimeSpan.Zero
@@ -317,7 +504,10 @@ public sealed class KafkaDlqRecoveryWorkerTests
 
     private static ConsumeResult<string, string> CreateDlqMessage(
         bool recovered = false,
-        bool includeOriginalTopic = true)
+        bool includeOriginalTopic = true,
+        string? retryIdentity = null,
+        string? originalTopic = null,
+        bool includeIdentitySpecificTopic = false)
     {
         var headers = new Headers();
 
@@ -325,7 +515,7 @@ public sealed class KafkaDlqRecoveryWorkerTests
         {
             headers.Add(
                 "x-conflux-original-topic",
-                Encoding.UTF8.GetBytes(SourceTopic));
+                Encoding.UTF8.GetBytes(originalTopic ?? SourceTopic));
         }
 
         headers.Add(
@@ -338,6 +528,13 @@ public sealed class KafkaDlqRecoveryWorkerTests
                 DateTimeOffset.UtcNow.AddMinutes(-1)
                     .ToUnixTimeMilliseconds().ToString()));
 
+        if (retryIdentity is not null)
+        {
+            headers.Add(
+                RetryIdentityHeader,
+                Encoding.UTF8.GetBytes(retryIdentity));
+        }
+
         if (recovered)
         {
             headers.Add(
@@ -345,9 +542,13 @@ public sealed class KafkaDlqRecoveryWorkerTests
                 Encoding.UTF8.GetBytes("true"));
         }
 
+        var topic = includeIdentitySpecificTopic || retryIdentity is not null
+            ? IdentityDlqTopic
+            : DlqTopic;
+
         return new ConsumeResult<string, string>
         {
-            Topic = DlqTopic,
+            Topic = topic,
             Partition = new Partition(0),
             Offset = new Offset(42),
             Message = new Message<string, string>

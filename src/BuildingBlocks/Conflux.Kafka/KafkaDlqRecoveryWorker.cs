@@ -12,12 +12,21 @@ namespace Conflux.Kafka;
 /// </summary>
 public sealed class KafkaDlqRecoveryWorker : BackgroundService
 {
+    private const string RetryIdentityHeader = "x-conflux-retry-identity";
+    private const string OriginalTopicHeader = "x-conflux-original-topic";
+    private const string RecoveredHeader = "x-conflux-recovered";
+    private const string RetryAttemptHeader = "x-conflux-retry-attempt";
+    private const string NotBeforeHeader = "x-conflux-not-before-unix-ms";
+    private const string RecoveredAtHeader = "x-conflux-recovered-at";
+
     private readonly KafkaRetryOptions _options;
     private readonly ILogger<KafkaDlqRecoveryWorker> _logger;
     private readonly Func<IKafkaMessageConsumer> _consumerFactory;
     private readonly Func<IKafkaMessageProducer> _producerFactory;
 
-    /// <summary>Initializes the recovery worker with configured Kafka clients.</summary>
+    /// <summary>
+    /// Initializes the recovery worker with configured Kafka clients.
+    /// </summary>
     public KafkaDlqRecoveryWorker(
         IOptions<KafkaRetryOptions> options,
         ILogger<KafkaDlqRecoveryWorker> logger)
@@ -29,7 +38,9 @@ public sealed class KafkaDlqRecoveryWorker : BackgroundService
     {
     }
 
-    /// <summary>Initializes the recovery worker with injectable Kafka client factories.</summary>
+    /// <summary>
+    /// Initializes the recovery worker with injectable Kafka client factories.
+    /// </summary>
     public KafkaDlqRecoveryWorker(
         IOptions<KafkaRetryOptions> options,
         ILogger<KafkaDlqRecoveryWorker> logger,
@@ -56,7 +67,8 @@ public sealed class KafkaDlqRecoveryWorker : BackgroundService
         }
 
         var dlqTopics = _options.SourceTopics
-            .Select(KafkaRetryOptions.GetDlqTopic)
+            .Select(GetDlqTopic)
+            .Distinct(StringComparer.Ordinal)
             .ToArray();
 
         using var consumer = _consumerFactory();
@@ -69,13 +81,34 @@ public sealed class KafkaDlqRecoveryWorker : BackgroundService
             while (!stoppingToken.IsCancellationRequested)
             {
                 var result = consumer.Consume(stoppingToken);
-                var recovered = Header(result.Message.Headers, "x-conflux-recovered");
+                var message = result.Message;
 
-                if (string.Equals(recovered, "true", StringComparison.OrdinalIgnoreCase))
+                // An identity-configured worker must not recover messages
+                // belonging to another consumer or lacking identity metadata.
+                if (!HasExpectedIdentity(message.Headers))
                 {
-                    await producer.ProduceAsync(
-                        PermanentDlqTopic(result.Topic),
-                        result.Message,
+                    _logger.LogWarning(
+                        "Kafka DLQ recovery rejected a message from {DlqTopic} " +
+                        "because its retry identity was missing or mismatched.",
+                        result.Topic);
+
+                    await MoveToPermanentDlqAsync(
+                        result.Topic,
+                        message,
+                        producer,
+                        stoppingToken);
+
+                    consumer.Commit(result);
+                    continue;
+                }
+
+                // Prevent automatic recovery loops.
+                if (IsAlreadyRecovered(message.Headers))
+                {
+                    await MoveToPermanentDlqAsync(
+                        result.Topic,
+                        message,
+                        producer,
                         stoppingToken);
 
                     consumer.Commit(result);
@@ -84,43 +117,56 @@ public sealed class KafkaDlqRecoveryWorker : BackgroundService
 
                 await Task.Delay(_options.DlqRecoveryDelay, stoppingToken);
 
-                var sourceTopic = Header(
-                    result.Message.Headers,
-                    "x-conflux-original-topic");
+                var sourceTopic = Header(message.Headers, OriginalTopicHeader);
 
-                if (string.IsNullOrWhiteSpace(sourceTopic))
+                // Never replay to a topic supplied only by untrusted message
+                // metadata. The destination must be explicitly configured.
+                if (string.IsNullOrWhiteSpace(sourceTopic) ||
+                    !_options.SourceTopics.Contains(
+                        sourceTopic,
+                        StringComparer.Ordinal))
                 {
-                    await producer.ProduceAsync(
-                        PermanentDlqTopic(result.Topic),
-                        result.Message,
+                    _logger.LogWarning(
+                        "Kafka DLQ recovery rejected a message from {DlqTopic}: " +
+                        "original topic {OriginalTopic} is missing or not configured.",
+                        result.Topic,
+                        sourceTopic);
+
+                    await MoveToPermanentDlqAsync(
+                        result.Topic,
+                        message,
+                        producer,
                         stoppingToken);
 
                     consumer.Commit(result);
                     continue;
                 }
 
-                var headers = CloneHeaders(result.Message.Headers);
-                headers.Remove("x-conflux-not-before-unix-ms");
-                headers.Remove("x-conflux-retry-attempt");
+                var headers = CloneHeaders(message.Headers);
 
-                SetHeader(headers, "x-conflux-retry-attempt", "0");
-                SetHeader(headers, "x-conflux-recovered", "true");
+                headers.Remove(NotBeforeHeader);
+                headers.Remove(RetryAttemptHeader);
+
+                SetHeader(headers, RetryAttemptHeader, "0");
+                SetHeader(headers, RecoveredHeader, "true");
                 SetHeader(
                     headers,
-                    "x-conflux-recovered-at",
+                    RecoveredAtHeader,
                     DateTimeOffset.UtcNow.ToString("O"));
 
+                // Preserve the retry identity and original message metadata.
                 await producer.ProduceAsync(
                     sourceTopic,
                     new Message<string, string>
                     {
-                        Key = result.Message.Key,
-                        Value = result.Message.Value,
+                        Key = message.Key,
+                        Value = message.Value,
                         Headers = headers,
-                        Timestamp = result.Message.Timestamp
+                        Timestamp = message.Timestamp
                     },
                     stoppingToken);
 
+                // Commit only after publication succeeds.
                 consumer.Commit(result);
             }
         }
@@ -140,6 +186,43 @@ public sealed class KafkaDlqRecoveryWorker : BackgroundService
             consumer.Close();
         }
     }
+
+    private string GetDlqTopic(string sourceTopic) =>
+        string.IsNullOrWhiteSpace(_options.RetryIdentity)
+            ? KafkaRetryOptions.GetDlqTopic(sourceTopic)
+            : KafkaRetryOptions.GetDlqTopic(
+                sourceTopic,
+                _options.RetryIdentity);
+
+    private bool HasExpectedIdentity(Headers headers)
+    {
+        // An empty identity preserves the legacy topic-naming behavior.
+        if (string.IsNullOrWhiteSpace(_options.RetryIdentity))
+        {
+            return true;
+        }
+
+        return string.Equals(
+            Header(headers, RetryIdentityHeader),
+            _options.RetryIdentity,
+            StringComparison.Ordinal);
+    }
+
+    private static bool IsAlreadyRecovered(Headers headers) =>
+        string.Equals(
+            Header(headers, RecoveredHeader),
+            "true",
+            StringComparison.OrdinalIgnoreCase);
+
+    private static Task MoveToPermanentDlqAsync(
+        string dlqTopic,
+        Message<string, string> message,
+        IKafkaMessageProducer producer,
+        CancellationToken cancellationToken) =>
+        producer.ProduceAsync(
+            PermanentDlqTopic(dlqTopic),
+            message,
+            cancellationToken);
 
     private static IKafkaMessageConsumer CreateConsumer(KafkaRetryOptions options)
     {

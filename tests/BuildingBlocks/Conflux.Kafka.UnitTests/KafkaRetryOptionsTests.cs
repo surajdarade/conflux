@@ -35,6 +35,81 @@ public sealed class KafkaRetryOptionsTests
         Assert.Equal(TimeSpan.FromMinutes(5), options.DlqRecoveryDelay);
     }
 
+    /// <summary>Builds isolated retry topics for different logical consumers.</summary>
+    [Fact]
+    public void GetRetryTopic_WithRetryIdentity_IsolatesConsumers()
+    {
+        var orderTopic = KafkaRetryOptions.GetRetryTopic(
+            "conflux.order.events",
+            "order-checkout-saga",
+            1);
+
+        var fulfillmentTopic = KafkaRetryOptions.GetRetryTopic(
+            "conflux.order.events",
+            "fulfillment-order-confirmed",
+            1);
+
+        Assert.Equal(
+            "conflux.order.events.retry.order-checkout-saga.1",
+            orderTopic);
+
+        Assert.Equal(
+            "conflux.order.events.retry.fulfillment-order-confirmed.1",
+            fulfillmentTopic);
+
+        Assert.NotEqual(orderTopic, fulfillmentTopic);
+    }
+
+    /// <summary>Builds isolated DLQ topics for different logical consumers.</summary>
+    [Fact]
+    public void GetDlqTopic_WithRetryIdentity_IsolatesConsumers()
+    {
+        var orderTopic = KafkaRetryOptions.GetDlqTopic(
+            "conflux.order.events",
+            "order-checkout-saga");
+
+        var fulfillmentTopic = KafkaRetryOptions.GetDlqTopic(
+            "conflux.order.events",
+            "fulfillment-order-confirmed");
+
+        Assert.Equal(
+            "conflux.order.events.dlq.order-checkout-saga",
+            orderTopic);
+
+        Assert.Equal(
+            "conflux.order.events.dlq.fulfillment-order-confirmed",
+            fulfillmentTopic);
+    }
+
+    /// <summary>Rejects invalid retry identities.</summary>
+    [Theory]
+    [InlineData("")]
+    [InlineData("order saga")]
+    [InlineData("order.saga")]
+    [InlineData("order/saga")]
+    public void GetRetryTopic_WithInvalidIdentity_Throws(
+        string retryIdentity)
+    {
+        Assert.Throws<ArgumentException>(() =>
+            KafkaRetryOptions.GetRetryTopic(
+                "conflux.order.events",
+                retryIdentity,
+                1));
+    }
+
+    /// <summary>Rejects retry attempts below one.</summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void GetRetryTopic_WithInvalidAttempt_Throws(int attempt)
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            KafkaRetryOptions.GetRetryTopic(
+                "conflux.order.events",
+                "order-checkout-saga",
+                attempt));
+    }
+
     /// <summary>Builds the retry topic name for the requested attempt.</summary>
     [Theory]
     [InlineData("conflux.catalog.events", 1, "conflux.catalog.events.retry.1")]

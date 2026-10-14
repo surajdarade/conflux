@@ -64,6 +64,7 @@
   <Folder Name="/tests/" />
   <Folder Name="/tests/BuildingBlocks/">
     <Project Path="tests/BuildingBlocks/Conflux.Kafka.UnitTests/Conflux.Kafka.UnitTests.csproj" />
+    <Project Path="tests/BuildingBlocks/Conflux.Kafka.IntegrationTests/Conflux.Kafka.IntegrationTests.csproj" />
   </Folder>
   <Folder Name="/tests/Contract/">
     <Project Path="tests/Contract/Conflux.ContractTests/Conflux.ContractTests.csproj" />

@@ -1,5 +1,4 @@
-﻿
-using System.Text;
+﻿using System.Text;
 using Confluent.Kafka;
 using Conflux.Kafka;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -9,11 +8,15 @@ using Xunit;
 namespace Conflux.Kafka.UnitTests;
 
 /// <summary>
-/// Tests retry-worker forwarding, offset handling, and lifecycle behavior.
+/// Tests retry-worker forwarding, consumer-specific topic isolation,
+/// offset handling, retry scheduling, error handling, and lifecycle behavior.
 /// </summary>
 public sealed class KafkaRetryWorkerTests
 {
     private const string SourceTopic = "conflux.catalog.events";
+    private const string OrderSourceTopic = "conflux.order.events";
+    private const string FulfillmentRetryIdentity = "fulfillment-order-confirmed";
+    private const string OrderRetryIdentity = "order-checkout-saga";
 
     /// <summary>
     /// Forwards a retry message to its source topic and commits after publishing.
@@ -40,6 +43,7 @@ public sealed class KafkaRetryWorkerTests
         }
 
         var published = Assert.Single(producer.PublishedMessages);
+
         Assert.Equal(SourceTopic, published.Topic);
         Assert.Equal("product-1", published.Message.Key);
         Assert.Equal("{\"sku\":\"TEST-001\"}", published.Message.Value);
@@ -51,7 +55,7 @@ public sealed class KafkaRetryWorkerTests
     }
 
     /// <summary>
-    /// Subscribes to every configured retry topic before processing messages.
+    /// Verifies that legacy mode subscribes to the configured retry topics.
     /// </summary>
     [Fact]
     public async Task StartAsync_SubscribesToConfiguredRetryTopics()
@@ -84,12 +88,235 @@ public sealed class KafkaRetryWorkerTests
     }
 
     /// <summary>
+    /// Verifies that an identity-configured worker subscribes only to
+    /// retry topics belonging to its configured consumer identity.
+    /// </summary>
+    [Fact]
+    public async Task StartAsync_WithRetryIdentity_SubscribesToConsumerSpecificRetryTopics()
+    {
+        var consumer = new FakeKafkaMessageConsumer([]);
+        var producer = new FakeKafkaMessageProducer();
+
+        using var worker = CreateWorker(
+            consumer,
+            producer,
+            sourceTopic: OrderSourceTopic,
+            retryIdentity: FulfillmentRetryIdentity);
+
+        await worker.StartAsync(CancellationToken.None);
+
+        try
+        {
+            await WaitUntilAsync(
+                () => consumer.SubscribedTopics.Count > 0,
+                TimeSpan.FromSeconds(5));
+        }
+        finally
+        {
+            await worker.StopAsync(CancellationToken.None);
+        }
+
+        Assert.Equal(
+            new[]
+            {
+                $"{OrderSourceTopic}.retry.{FulfillmentRetryIdentity}.1",
+                $"{OrderSourceTopic}.retry.{FulfillmentRetryIdentity}.2"
+            },
+            consumer.SubscribedTopics);
+    }
+
+    /// <summary>
+    /// Verifies that a retry message with the expected identity is forwarded
+    /// to its original source topic and committed after publication.
+    /// </summary>
+    [Fact]
+    public async Task RetryMessage_WithMatchingIdentity_ForwardsToOriginalTopic()
+    {
+        var consumer = new FakeKafkaMessageConsumer(
+        [
+            CreateRetryMessage(
+                sourceTopic: OrderSourceTopic,
+                retryIdentity: FulfillmentRetryIdentity)
+        ]);
+
+        var producer = new FakeKafkaMessageProducer();
+
+        using var worker = CreateWorker(
+            consumer,
+            producer,
+            sourceTopic: OrderSourceTopic,
+            retryIdentity: FulfillmentRetryIdentity);
+
+        await worker.StartAsync(CancellationToken.None);
+
+        try
+        {
+            await WaitUntilAsync(
+                () => consumer.CommittedMessages.Count == 1,
+                TimeSpan.FromSeconds(5));
+        }
+        finally
+        {
+            await worker.StopAsync(CancellationToken.None);
+        }
+
+        var published = Assert.Single(producer.PublishedMessages);
+
+        Assert.Equal(OrderSourceTopic, published.Topic);
+        Assert.Equal("product-1", published.Message.Key);
+        Assert.Equal(
+            FulfillmentRetryIdentity,
+            ReadHeader(
+                published.Message.Headers,
+                "x-conflux-retry-identity"));
+        Assert.Null(ReadHeader(
+            published.Message.Headers,
+            "x-conflux-not-before-unix-ms"));
+        Assert.Single(consumer.CommittedMessages);
+    }
+
+    /// <summary>
+    /// Verifies that a retry message without an identity header is sent to
+    /// the configured consumer's DLQ instead of being replayed.
+    /// </summary>
+    [Fact]
+    public async Task RetryMessage_WithoutIdentityHeader_RoutesToConsumerSpecificDlq()
+    {
+        var consumer = new FakeKafkaMessageConsumer(
+        [
+            CreateRetryMessage(
+                sourceTopic: OrderSourceTopic,
+                retryIdentity: FulfillmentRetryIdentity,
+                includeRetryIdentityHeader: false)
+        ]);
+
+        var producer = new FakeKafkaMessageProducer();
+
+        using var worker = CreateWorker(
+            consumer,
+            producer,
+            sourceTopic: OrderSourceTopic,
+            retryIdentity: FulfillmentRetryIdentity);
+
+        await worker.StartAsync(CancellationToken.None);
+
+        try
+        {
+            await WaitUntilAsync(
+                () => consumer.CommittedMessages.Count == 1,
+                TimeSpan.FromSeconds(5));
+        }
+        finally
+        {
+            await worker.StopAsync(CancellationToken.None);
+        }
+
+        var published = Assert.Single(producer.PublishedMessages);
+
+        Assert.Equal(
+            $"{OrderSourceTopic}.dlq.{FulfillmentRetryIdentity}",
+            published.Topic);
+        Assert.NotEqual(OrderSourceTopic, published.Topic);
+        Assert.Single(consumer.CommittedMessages);
+    }
+
+    /// <summary>
+    /// Verifies that a retry message belonging to a different consumer identity
+    /// is sent to this worker's DLQ instead of being replayed.
+    /// </summary>
+    [Fact]
+    public async Task RetryMessage_WithMismatchedIdentity_RoutesToConsumerSpecificDlq()
+    {
+        var consumer = new FakeKafkaMessageConsumer(
+        [
+            CreateRetryMessage(
+                sourceTopic: OrderSourceTopic,
+                retryIdentity: OrderRetryIdentity)
+        ]);
+
+        var producer = new FakeKafkaMessageProducer();
+
+        using var worker = CreateWorker(
+            consumer,
+            producer,
+            sourceTopic: OrderSourceTopic,
+            retryIdentity: FulfillmentRetryIdentity);
+
+        await worker.StartAsync(CancellationToken.None);
+
+        try
+        {
+            await WaitUntilAsync(
+                () => consumer.CommittedMessages.Count == 1,
+                TimeSpan.FromSeconds(5));
+        }
+        finally
+        {
+            await worker.StopAsync(CancellationToken.None);
+        }
+
+        var published = Assert.Single(producer.PublishedMessages);
+
+        Assert.Equal(
+            $"{OrderSourceTopic}.dlq.{FulfillmentRetryIdentity}",
+            published.Topic);
+        Assert.Equal(
+            OrderRetryIdentity,
+            ReadHeader(
+                published.Message.Headers,
+                "x-conflux-retry-identity"));
+        Assert.NotEqual(OrderSourceTopic, published.Topic);
+        Assert.Single(consumer.CommittedMessages);
+    }
+
+    /// <summary>
+    /// Verifies that an unconfigured original topic is quarantined using the
+    /// consumed retry topic rather than a destination derived from that header.
+    /// </summary>
+    [Fact]
+    public async Task RetryMessage_WithUnconfiguredSourceTopic_UsesFallbackDlq()
+    {
+        var consumer = new FakeKafkaMessageConsumer(
+        [
+            CreateRetryMessage(
+                sourceTopic: "conflux.unconfigured.events",
+                retryIdentity: FulfillmentRetryIdentity)
+        ]);
+        var producer = new FakeKafkaMessageProducer();
+
+        using var worker = CreateWorker(
+            consumer,
+            producer,
+            sourceTopic: OrderSourceTopic,
+            retryIdentity: FulfillmentRetryIdentity);
+
+        await worker.StartAsync(CancellationToken.None);
+        try
+        {
+            await WaitUntilAsync(
+                () => consumer.CommittedMessages.Count == 1,
+                TimeSpan.FromSeconds(5));
+        }
+        finally
+        {
+            await worker.StopAsync(CancellationToken.None);
+        }
+
+        var published = Assert.Single(producer.PublishedMessages);
+        Assert.Equal(
+            $"conflux.unconfigured.events.retry.{FulfillmentRetryIdentity}.1.dlq.{FulfillmentRetryIdentity}",
+            published.Topic);
+        Assert.Single(consumer.CommittedMessages);
+    }
+
+    /// <summary>
     /// Routes a retry message without an original-topic header to its fallback DLQ.
     /// </summary>
     [Fact]
     public async Task RetryMessage_WithoutOriginalTopicHeader_RoutesToFallbackDlq()
     {
         var headers = new Headers();
+
         headers.Add(
             "x-conflux-retry-attempt",
             Encoding.UTF8.GetBytes("1"));
@@ -126,6 +353,7 @@ public sealed class KafkaRetryWorkerTests
         }
 
         var published = Assert.Single(producer.PublishedMessages);
+
         Assert.Equal($"{SourceTopic}.retry.1.dlq", published.Topic);
         Assert.Equal("product-2", published.Message.Key);
         Assert.Equal("{\"sku\":\"TEST-002\"}", published.Message.Value);
@@ -133,12 +361,13 @@ public sealed class KafkaRetryWorkerTests
     }
 
     /// <summary>
-    /// Delays forwarding until the retry message's scheduled time.
+    /// Verifies that a retry message is not forwarded before its scheduled time.
     /// </summary>
     [Fact]
     public async Task RetryMessage_WithFutureTimestamp_IsNotForwardedEarly()
     {
         var headers = new Headers();
+
         headers.Add(
             "x-conflux-original-topic",
             Encoding.UTF8.GetBytes(SourceTopic));
@@ -190,18 +419,20 @@ public sealed class KafkaRetryWorkerTests
         }
 
         var published = Assert.Single(producer.PublishedMessages);
+
         Assert.Equal(SourceTopic, published.Topic);
         Assert.Equal("product-delayed", published.Message.Key);
         Assert.Single(consumer.CommittedMessages);
     }
 
     /// <summary>
-    /// Does not commit a retry message when publishing it fails.
+    /// Verifies that a retry message is not committed when publishing fails.
     /// </summary>
     [Fact]
     public async Task RetryMessage_WhenPublishingFails_DoesNotCommitOffset()
     {
         var consumer = new FakeKafkaMessageConsumer([CreateRetryMessage()]);
+
         var producer = new FakeKafkaMessageProducer
         {
             PublishException = new InvalidOperationException(
@@ -235,7 +466,8 @@ public sealed class KafkaRetryWorkerTests
     }
 
     /// <summary>
-    /// Closes and disposes the consumer when the worker is stopped while waiting.
+    /// Verifies that stopping the worker closes and disposes its consumer
+    /// and completes execution when no retry messages are available.
     /// </summary>
     [Fact]
     public async Task StopAsync_WhenConsumerIsWaiting_ClosesConsumerAndCompletesWorker()
@@ -266,13 +498,26 @@ public sealed class KafkaRetryWorkerTests
         Assert.Empty(consumer.CommittedMessages);
     }
 
+    /// <summary>
+    /// Creates a retry worker with injectable fake Kafka clients.
+    /// </summary>
+    /// <param name="consumer">Fake consumer used by the worker.</param>
+    /// <param name="producer">Fake producer used by the worker.</param>
+    /// <param name="sourceTopic">Configured source topic.</param>
+    /// <param name="retryIdentity">
+    /// Optional consumer-specific retry identity. Empty selects legacy topic naming.
+    /// </param>
+    /// <returns>The configured retry worker.</returns>
     private static KafkaRetryWorker CreateWorker(
         FakeKafkaMessageConsumer consumer,
-        FakeKafkaMessageProducer producer)
+        FakeKafkaMessageProducer producer,
+        string sourceTopic = SourceTopic,
+        string retryIdentity = "")
     {
         var options = Options.Create(new KafkaRetryOptions
         {
-            SourceTopics = [SourceTopic],
+            SourceTopics = [sourceTopic],
+            RetryIdentity = retryIdentity,
             MaxAttempts = 3,
             PollInterval = TimeSpan.FromMilliseconds(10)
         });
@@ -284,12 +529,27 @@ public sealed class KafkaRetryWorkerTests
             () => producer);
     }
 
-    private static ConsumeResult<string, string> CreateRetryMessage()
+    /// <summary>
+    /// Creates a retry message with scheduling metadata and optional consumer identity.
+    /// </summary>
+    /// <param name="sourceTopic">Original source topic.</param>
+    /// <param name="retryIdentity">
+    /// Optional retry identity. When provided, the retry topic uses identity-specific naming.
+    /// </param>
+    /// <param name="includeRetryIdentityHeader">
+    /// Whether to include the retry identity header in the message.
+    /// </param>
+    /// <returns>A synthetic consumed Kafka retry message.</returns>
+    private static ConsumeResult<string, string> CreateRetryMessage(
+        string sourceTopic = SourceTopic,
+        string? retryIdentity = null,
+        bool includeRetryIdentityHeader = true)
     {
         var headers = new Headers();
+
         headers.Add(
             "x-conflux-original-topic",
-            Encoding.UTF8.GetBytes(SourceTopic));
+            Encoding.UTF8.GetBytes(sourceTopic));
         headers.Add(
             "x-conflux-retry-attempt",
             Encoding.UTF8.GetBytes("1"));
@@ -299,9 +559,21 @@ public sealed class KafkaRetryWorkerTests
                 DateTimeOffset.UtcNow.AddSeconds(-1)
                     .ToUnixTimeMilliseconds().ToString()));
 
+        if (!string.IsNullOrWhiteSpace(retryIdentity)
+            && includeRetryIdentityHeader)
+        {
+            headers.Add(
+                "x-conflux-retry-identity",
+                Encoding.UTF8.GetBytes(retryIdentity));
+        }
+
+        var retryTopic = string.IsNullOrWhiteSpace(retryIdentity)
+            ? $"{sourceTopic}.retry.1"
+            : $"{sourceTopic}.retry.{retryIdentity}.1";
+
         return new ConsumeResult<string, string>
         {
-            Topic = $"{SourceTopic}.retry.1",
+            Topic = retryTopic,
             Partition = new Partition(0),
             Offset = new Offset(42),
             Message = new Message<string, string>
@@ -314,6 +586,12 @@ public sealed class KafkaRetryWorkerTests
         };
     }
 
+    /// <summary>
+    /// Reads the last occurrence of a Kafka header and decodes its value as UTF-8.
+    /// </summary>
+    /// <param name="headers">Headers to inspect.</param>
+    /// <param name="name">Header name to locate.</param>
+    /// <returns>The decoded value, or null if the header is absent.</returns>
     private static string? ReadHeader(Headers headers, string name)
     {
         for (var index = headers.Count - 1; index >= 0; index--)
@@ -321,6 +599,7 @@ public sealed class KafkaRetryWorkerTests
             if (headers[index].Key == name)
             {
                 var bytes = headers[index].GetValueBytes();
+
                 return bytes is null
                     ? null
                     : Encoding.UTF8.GetString(bytes);
@@ -330,6 +609,11 @@ public sealed class KafkaRetryWorkerTests
         return null;
     }
 
+    /// <summary>
+    /// Waits for a condition to become true or throws when the timeout expires.
+    /// </summary>
+    /// <param name="condition">Condition to evaluate.</param>
+    /// <param name="timeout">Maximum time to wait.</param>
     private static async Task WaitUntilAsync(
         Func<bool> condition,
         TimeSpan timeout)
