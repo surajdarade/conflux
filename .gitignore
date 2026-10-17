@@ -55,7 +55,3 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
-
-# .VS AND BENCHMARKS ARTIFACTS
-.vs
-BenchmarkDotNet.Artifacts
