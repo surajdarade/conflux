@@ -207,45 +207,197 @@ public class SerializationBenchmarks {
         string Currency);
 }
 
-/// <summary>Measures consistent-hash routing over large key sets.</summary>
+
+/// <summary>
+/// Compares linear-search and binary-search consistent-hash routing
+/// over identical SKU inputs and shard configurations.
+/// </summary>
 [MemoryDiagnoser]
-public class ShardRoutingBenchmarks {
-    private ConsistentHashRing _ring = null!;
+public class ShardRoutingBenchmarks
+{
+    private ConsistentHashRing _binaryRing = null!;
+    private LinearConsistentHashRing _linearRing = null!;
     private string[] _skus = null!;
 
-    /// <summary>Gets the number of configured shards.</summary>
+    /// <summary>Gets the number of configured logical shards.</summary>
     [Params(4, 16, 64)]
     public int Shards { get; set; }
 
-    /// <summary>Initializes the ring and test keys.</summary>
+    /// <summary>
+    /// Initializes both rings and the same 100K SKU input set.
+    /// Validates that both algorithms produce identical shard mappings.
+    /// </summary>
     [GlobalSetup]
-    public void Setup() {
-        _ring = new ConsistentHashRing(
-            Enumerable
-                .Range(0, Shards)
-                .Select(index => $"inventory-{index}"),
+    public void Setup()
+    {
+        var shardNames = Enumerable
+            .Range(0, Shards)
+            .Select(index => $"inventory-{index}")
+            .ToArray();
+
+        // Existing production implementation: binary search.
+        _binaryRing = new ConsistentHashRing(
+            shardNames,
             256);
 
+        // Benchmark-only reference implementation: linear search.
+        _linearRing = new LinearConsistentHashRing(
+            shardNames,
+            256);
+
+        // Identical input keys for both implementations.
         _skus = Enumerable
             .Range(0, 100_000)
             .Select(index => $"SKU-{index}")
             .ToArray();
+
+        // Correctness check: both algorithms must route every SKU
+        // to exactly the same logical shard.
+        foreach (var sku in _skus)
+        {
+            var binaryShard = _binaryRing.GetShard(sku);
+            var linearShard = _linearRing.GetShard(sku);
+
+            if (!string.Equals(
+                    binaryShard,
+                    linearShard,
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"Routing mismatch for SKU '{sku}'. " +
+                    $"Binary: {binaryShard}, Linear: {linearShard}");
+            }
+        }
     }
 
-    /// <summary>Measures a representative routing workload.</summary>
-    [Benchmark]
-    public int Route100K() {
+    /// <summary>Measures the original O(N) linear-search implementation.</summary>
+    [Benchmark(Baseline = true)]
+    public int LinearRoute100K()
+    {
         var checksum = 0;
 
-        foreach (var sku in _skus) {
-            checksum ^= _ring
+        foreach (var sku in _skus)
+        {
+            checksum ^= _linearRing
                 .GetShard(sku)
                 .GetHashCode();
         }
 
         return checksum;
     }
+
+    /// <summary>Measures the optimized O(log N) binary-search implementation.</summary>
+    [Benchmark]
+    public int BinaryRoute100K()
+    {
+        var checksum = 0;
+
+        foreach (var sku in _skus)
+        {
+            checksum ^= _binaryRing
+                .GetShard(sku)
+                .GetHashCode();
+        }
+
+        return checksum;
+    }
+
+    /// <summary>
+    /// Benchmark-only copy of the consistent hash ring using
+    /// linear search instead of binary search.
+    /// Hashing, normalization, virtual-node construction and
+    /// ordering intentionally match the production implementation.
+    /// </summary>
+    private sealed class LinearConsistentHashRing
+    {
+        private readonly ulong[] _hashes;
+        private readonly string[] _shards;
+
+        public LinearConsistentHashRing(
+            IEnumerable<string> shards,
+            int virtualNodesPerShard)
+        {
+            var normalized = shards
+                .Where(shard => !string.IsNullOrWhiteSpace(shard))
+                .Select(shard => shard.Trim())
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+
+            if (normalized.Length == 0)
+            {
+                throw new ArgumentException(
+                    "At least one shard is required.",
+                    nameof(shards));
+            }
+
+            if (virtualNodesPerShard <= 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(virtualNodesPerShard));
+            }
+
+            var nodes = new List<(ulong Hash, string Shard)>(
+                normalized.Length * virtualNodesPerShard);
+
+            foreach (var shard in normalized)
+            {
+                for (var node = 0; node < virtualNodesPerShard; node++)
+                {
+                    nodes.Add((
+                        Hash($"{shard}:{node}"),
+                        shard));
+                }
+            }
+
+            nodes.Sort(static (left, right) =>
+                left.Hash.CompareTo(right.Hash));
+
+            _hashes = new ulong[nodes.Count];
+            _shards = new string[nodes.Count];
+
+            for (var index = 0; index < nodes.Count; index++)
+            {
+                _hashes[index] = nodes[index].Hash;
+                _shards[index] = nodes[index].Shard;
+            }
+        }
+
+        public string GetShard(string sku)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(sku);
+
+            var hash = Hash(sku.Trim());
+            var index = FindCeilingIndexLinear(hash);
+
+            return _shards[index];
+        }
+
+        // Original O(N) ring lookup.
+        private int FindCeilingIndexLinear(ulong hash)
+        {
+            for (var index = 0; index < _hashes.Length; index++)
+            {
+                if (_hashes[index] >= hash)
+                {
+                    return index;
+                }
+            }
+
+            // Wrap around when no ring point is >= hash.
+            return 0;
+        }
+
+        // Identical SHA-256 hashing to production.
+        private static ulong Hash(string value)
+        {
+            var bytes = System.Security.Cryptography.SHA256.HashData(
+                System.Text.Encoding.UTF8.GetBytes(value));
+
+            return BitConverter.ToUInt64(bytes, 0);
+        }
+    }
 }
+
 
 /// <summary>Measures hot-cache lookup behavior at large cardinalities.</summary>
 [MemoryDiagnoser]
